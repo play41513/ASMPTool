@@ -51,12 +51,12 @@
             lbResult = new Label();
             lbTotalTime = new Label();
             label3 = new Label();
+            textBox = new RichTextBox();
             loginInfoModelBindingSource = new BindingSource(components);
             plMessageBox = new Panel();
             lbMessageBoxTitle = new Label();
             panel2 = new Panel();
             tBoxScanBarcode = new TextBox();
-            textBox = new RichTextBox();
             tableLayoutPanel1.SuspendLayout();
             tableLayoutPanel2.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)pictureBox1).BeginInit();
@@ -377,6 +377,16 @@
             label3.Text = "紀錄 Record";
             label3.TextAlign = ContentAlignment.MiddleLeft;
             // 
+            // textBox
+            // 
+            textBox.Dock = DockStyle.Fill;
+            textBox.Location = new Point(3, 33);
+            textBox.Name = "textBox";
+            textBox.Size = new Size(896, 122);
+            textBox.TabIndex = 8;
+            textBox.Text = "";
+            textBox.TextChanged += textBox_TextChanged;
+            // 
             // loginInfoModelBindingSource
             // 
             loginInfoModelBindingSource.DataSource = typeof(Model.LoginInfoModel);
@@ -424,17 +434,8 @@
             tBoxScanBarcode.Size = new Size(525, 50);
             tBoxScanBarcode.TabIndex = 0;
             tBoxScanBarcode.TextAlign = HorizontalAlignment.Center;
+            tBoxScanBarcode.TextChanged += tBoxScanBarcode_TextChanged;
             tBoxScanBarcode.KeyPress += tBoxScanBarcode_KeyPress;
-            // 
-            // textBox
-            // 
-            textBox.Dock = DockStyle.Fill;
-            textBox.Location = new Point(3, 33);
-            textBox.Name = "textBox";
-            textBox.Size = new Size(896, 122);
-            textBox.TabIndex = 8;
-            textBox.Text = "";
-            textBox.TextChanged += textBox_TextChanged;
             // 
             // UIForm
             // 

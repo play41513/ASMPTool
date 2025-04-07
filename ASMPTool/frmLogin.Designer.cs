@@ -280,6 +280,7 @@
             Name = "frmLogin";
             StartPosition = FormStartPosition.CenterScreen;
             Text = "frmLogin";
+            FormClosing += frmLogin_FormClosing;
             Shown += frmLogin_Shown;
             PlFrmLoginTop.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)pictureBox1).EndInit();

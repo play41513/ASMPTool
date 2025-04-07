@@ -104,11 +104,11 @@ namespace ASMPTool
                     }
                     break;
                 case MessageModel.MessageSaveFileToNAS_FAIL:
-                        MessageBox.Show(
-                            "  沒有連線到伺服器，傳送LOG失敗! \r\n\r\n  Not connected to the server. LOG transmission failed!"
-                            , "Message"
-                            , MessageBoxButtons.OK
-                            );
+                    MessageBox.Show(
+                        "  沒有連線到伺服器，傳送LOG失敗! \r\n\r\n  Not connected to the server. LOG transmission failed!"
+                        , "Message"
+                        , MessageBoxButtons.OK
+                        );
                     break;
                 default:
                     base.WndProc(ref m);
@@ -125,6 +125,7 @@ namespace ASMPTool
         }
         private void UIForm_FormClosing(object sender, FormClosingEventArgs e)
         {
+            LoggingBLL.UnmapNetworkDrive(LoginInfoModel.Instance.NAS_IP_Address);
             System.Environment.Exit(0);
         }
 
@@ -189,6 +190,11 @@ namespace ASMPTool
 
             // 讓游標滾動到最後
             textBox.ScrollToCaret();
+        }
+
+        private void tBoxScanBarcode_TextChanged(object sender, EventArgs e)
+        {
+
         }
     }
 }

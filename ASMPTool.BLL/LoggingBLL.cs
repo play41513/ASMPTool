@@ -72,6 +72,7 @@ namespace ASMPTool.BLL
                 isMapped = MapNetworkDrive(networkPath, username, password);
                 if (!isMapped)
                 {
+                    UnmapNetworkDrive(networkPath);
                     Console.WriteLine("無法掛載網路磁碟，寫入取消！");
                     return false;
                 }
@@ -117,15 +118,24 @@ namespace ASMPTool.BLL
                 // 如果掛載成功，則解除網路磁碟
                 if (isMapped)
                 {
-                    UnmapNetworkDrive(networkPath);
-                    Console.WriteLine("已解除網路磁碟掛載：" + networkPath);
+                    //UnmapNetworkDrive(networkPath);
+                    //Console.WriteLine("已解除網路磁碟掛載：" + networkPath);
                 }               
             }
             return bPassed;
         }
         public static bool MapNetworkDrive(string networkPath, string username, string password)
         {
-            if (networkPath.Contains(@"192.168.20.1"))
+            if (networkPath.Contains(@"192.168.14.23"))
+            {
+                return Directory.Exists(networkPath);
+            }
+            // 檢查是否已經掛載過，避免重複掛載
+            if(DirectoryExistsWithTimeout(networkPath, 1000))
+            {
+                return true;
+            }
+            else
             {
                 try
                 {
@@ -138,8 +148,21 @@ namespace ASMPTool.BLL
                         CreateNoWindow = true
                     };
                     Process? process = Process.Start(psi);
-                    process?.WaitForExit();
-                    return process?.ExitCode == 0;
+                    process?.WaitForExit(1000);
+                    if (process?.ExitCode == 0)
+                    {
+                        return true;
+                    }
+                    else if (process?.ExitCode == 1219)
+                    {
+                        // 1219 是連接中錯誤碼
+                        return true;
+                    }
+                    else
+                    {
+                        Console.WriteLine("掛載失敗：" + process?.ExitCode);
+                        return false;
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -147,8 +170,6 @@ namespace ASMPTool.BLL
                     return false;
                 }
             }
-            else
-                return true;
         }
         public static void UnmapNetworkDrive(string networkPath)
         {
@@ -175,5 +196,19 @@ namespace ASMPTool.BLL
             else
                 return;
         }
+        public static bool DirectoryExistsWithTimeout(string path, int timeoutMs)
+        {
+            using var cts = new CancellationTokenSource(timeoutMs);
+            try
+            {
+                Task<bool> task = Task.Run(() => Directory.Exists(path), cts.Token);
+                return task.Wait(timeoutMs) && task.Result;
+            }
+            catch
+            {
+                return false; // 若發生例外或超時，返回 false
+            }
+        }
+
     }
 }
