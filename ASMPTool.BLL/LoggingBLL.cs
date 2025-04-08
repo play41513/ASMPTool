@@ -43,9 +43,9 @@ namespace ASMPTool.BLL
             if (result == "TESTTING")//有時TestResultModel.Instance.TestResult未更新
             {
                 if(logString.Contains("FAIL") || logString.Contains("ERROR"))
-                    result = "FAILED";
+                    result = "FAIL";
                 else
-                    result = "PASSED";
+                    result = "PASS";
             }
             writer.WriteLine($"{LoginInfoModel.Instance.ProductModel},{LoginInfoModel.Instance.EmployeeID}" +
                 $",{LoginInfoModel.Instance.Version},{TestResultModel.Instance.ScanBarcodeNumber}" +
