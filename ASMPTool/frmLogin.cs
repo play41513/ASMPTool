@@ -72,6 +72,12 @@ namespace ASMPTool
             }
             else
             {
+                LoginInfoModel.Instance.WorkOrder = TBoxWorkOrder.Text;
+                LoginInfoModel.Instance.EmployeeID = TBoxEmployeeID.Text;
+                LoginInfoModel.Instance.ProductModel = ComBoxProductModel.Text;
+                LoginInfoModel.Instance.WorkStation = ComboBoxWorkStation.Text;
+                LoginInfoModel.Instance.Version = ComboBoxVersion.Text;
+
                 if (ConnectSWToolServer)
                 {
                     //建立Server Log資料夾
@@ -91,11 +97,6 @@ namespace ASMPTool
                         return;
                 }
 
-                LoginInfoModel.Instance.WorkOrder = TBoxWorkOrder.Text;
-                LoginInfoModel.Instance.EmployeeID = TBoxEmployeeID.Text;
-                LoginInfoModel.Instance.ProductModel = ComBoxProductModel.Text;
-                LoginInfoModel.Instance.WorkStation = ComboBoxWorkStation.Text;
-                LoginInfoModel.Instance.Version = ComboBoxVersion.Text;
                 SaveRecordFile();
 
 
@@ -293,7 +294,7 @@ namespace ASMPTool
             writer.WriteLine($"WorkStation,{ComboBoxWorkStation.Text}");
             writer.WriteLine($"Version,{ComboBoxVersion.Text}");
         }
-        private static void CopyFilesRecursively(string sourcePath, string destinationPath)
+        private static void CopyFilesRecursively(string sourcePath, string destinationPath, bool forceCopy = false)
         {
             // 取得來源資料夾的子資料夾
             DirectoryInfo dir = new DirectoryInfo(sourcePath);
@@ -331,6 +332,7 @@ namespace ASMPTool
             }
             else if (!sourcePath.Contains("ASMPTool\\WorkStationFile"))
                 skipCopy = true;
+            if (forceCopy) skipCopy = false;
 
             if (!skipCopy)
             {
@@ -348,8 +350,13 @@ namespace ASMPTool
             {
                 if (subdir.Name != "ItemParameter" && subdir.Name != "WorkStationFile")
                 {
+
                     string temppath = Path.Combine(destinationPath, subdir.Name);
-                    CopyFilesRecursively(subdir.FullName, temppath);
+                    if (temppath.Contains("ItemParameter\\" + LoginInfoModel.Instance.ProductModel + "\\" + LoginInfoModel.Instance.WorkStation + "\\")
+                        && !skipCopy)
+                        CopyFilesRecursively(subdir.FullName, temppath, true);
+                    else
+                        CopyFilesRecursively(subdir.FullName, temppath);
                 }
             }
         }
