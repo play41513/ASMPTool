@@ -81,27 +81,25 @@ namespace ASMP.ViewModel
 
         public UIFormViewModel(IntPtr ownerHandle, LoginInfoModel loginInfo)
         {
-            // --- 初始化 ---
             _ownerHandle = ownerHandle;
             _loginInfo = loginInfo;
             _errorCodeBLL = new ErrorCodeBLL();
             _uiSyncContext = SynchronizationContext.Current ?? new SynchronizationContext();
 
-            // --- 載入測試計畫 ---
+            // 載入測試項目
             string filePath = $@"WorkStationFile\{_loginInfo.ProductModel}\{_loginInfo.WorkStation}\{_loginInfo.Version}";
             _testPlan = new INIFileBLL(filePath).LoadToModel(); 
 
-            // --- 初始化命令 ---
+            // 初始化
             BarcodeEnteredCommand = new RelayCommand<string>(OnBarcodeEntered);
 
-            // --- 準備 UI 列表 ---
             for (int i = 0; i < _testPlan.Tasks.Count; i++)
             {
                 // 測試項加入到顯示列表中
                  TestSteps.Add(new TestStepViewModel(i, _testPlan.Tasks[i]));
             }
 
-            // --- 啟動任務 ---
+            // 啟動任務
             _clockTimer = new System.Threading.Timer(OnClockTick, null, 0, 1000);
             Task.Run(MainTestLoop); // 在背景執行緒中啟動主測試流程
         }
@@ -121,14 +119,14 @@ namespace ASMP.ViewModel
             _uiSyncContext.Post(_ => CurrentTime = DateTime.Now.ToString("HH:mm:ss"), null);
         }
 
-        // --- 核心測試流程 ---
+        // 主測試流程 
         private async Task MainTestLoop()
         {
             while (true)
             {
                 var testResult = new TestResultModel();
 
-                // 1. 等待掃描條碼
+                // 1. 等待掃描MES條碼
                 string barcode = await RequestBarcodeScanAsync();
                 testResult.ScanBarcodeNumber = barcode;
                 _uiSyncContext.Post(_ => IsScanBarcodeVisible = false, null);
@@ -200,10 +198,8 @@ namespace ASMP.ViewModel
 
                 var stepStopwatch = Stopwatch.StartNew();
 
-                // *** 1: 建立一個 CancellationTokenSource 來控制計時器任務的生命週期 ***
                 var timerCts = new CancellationTokenSource();
 
-                // *** 2: 啟動一個並行的「計時器任務」 ***
                 // 每隔 10 毫秒，就更新一次畫面上的 SpendTime。
                 var timerTask = Task.Run(async () =>
                 {
@@ -211,7 +207,7 @@ namespace ASMP.ViewModel
                     {
                         _uiSyncContext.Post(s =>
                         {
-                            // 只有在碼錶還在跑的時候才更新
+                            // 只有在程式還在跑的時候才更新
                             if (stepStopwatch.IsRunning)
                                 correspondingStepVM.SpendTime = stepStopwatch.Elapsed.TotalSeconds.ToString("F2");
                         }, null);
@@ -219,13 +215,9 @@ namespace ASMP.ViewModel
                     }
                 });
 
-
-                // --- 測試任務執行 ---
                 bool stepPassed = false;
                 string stepDetail = "";
 
-                // *** 3: 將耗時的 BLL 呼叫也包裹在一個 Task 中，使其非同步化 ***
-                // 這樣 `await` 在等待它完成時，上面的 `timerTask` 就能夠在背景持續執行。
                 var executionTask = Task.Run(() =>
                 {
                     if (currentTask.FunctionTestType.Contains("MessageWindows.exe"))
@@ -247,30 +239,29 @@ namespace ASMP.ViewModel
                 // 等待測試執行完成
                 stepPassed = await executionTask;
 
-                // --- 測試結束，停止計時器並更新最終結果 ---
+                // 測試結束
                 stepStopwatch.Stop();
 
-                // *** 4: 測試已結束，發送取消信號來終止計時器任務 ***
                 timerCts.Cancel();
                 await timerTask; // 可以選擇性地等待計時器任務完全結束
 
                 var finalStepDetail = stepDetail;
 
-                // 更新最後一次最精確的時間，並設定最終結果
+                // 更新最後一次的時間
                 _uiSyncContext.Post(_ =>
                 {
                     correspondingStepVM.Result = stepPassed ? "PASSED" : "FAILED";
-                    correspondingStepVM.SpendTime = stepStopwatch.Elapsed.TotalSeconds.ToString("F2"); // 更新最終精確時間
+                    correspondingStepVM.SpendTime = stepStopwatch.Elapsed.TotalSeconds.ToString("F2"); 
                     correspondingStepVM.Detail = finalStepDetail;
 
                     _uiSync_AppendLog(finalStepDetail);
                     _uiSync_AppendLog($"--- End: {currentTask.Name}, Result: {correspondingStepVM.Result} ---");
                 }, null);
 
-                // 這筆資料是為了最後寫入 Log 檔準備的。
+                // 寫入 Log 檔
                 var stepResultItem = new TestResultItem
                 {
-                    TestItemName = currentTask.Name, // 存入步驟名稱
+                    TestItemName = currentTask.Name, 
                     Result = stepPassed ? "PASSED" : "FAILED",
                     SpendTime = stepStopwatch.Elapsed.TotalSeconds,
                     Detail = finalStepDetail
@@ -282,10 +273,10 @@ namespace ASMP.ViewModel
                 {
                     _uiSync_AppendLog($"*** Step Failed. Executing NG recovery steps... ***");
 
-                    // 1. 取得在 INI 檔案中為此失敗步驟定義的 NGTest 列表
+                    // 1. 取得在 INI 檔案中的 NGTest 
                     List<int> ngTestIndices = currentTask.NGTest;
 
-                    // 2. 遍歷這個列表，執行每一個指定的 NG 步驟
+                    // 2. 執行每一個指定的 NG 步驟
                     foreach (int ngTaskIndex in ngTestIndices)
                     {
                         int actualIndex = ngTaskIndex - 1;
@@ -295,10 +286,8 @@ namespace ASMP.ViewModel
                             var ngTask = _testPlan.Tasks[actualIndex];
                             _uiSync_AppendLog($"--- Executing NG Step: {ngTask.Name} ---");
 
-
-
                             // 執行 NG 任務，不判斷它是否成功，只是執行
-                            // 這裡的邏輯與執行普通任務完全相同
+
                             if (ngTask.FunctionTestType.Contains("MessageWindows.exe"))
                             {
                                 MessageBoxBLL.ExecuteMessageBox(ngTask.FunctionTestType, out _);
@@ -318,18 +307,16 @@ namespace ASMP.ViewModel
                     _uiSync_AppendLog($"*** NG recovery steps finished. Terminating test. ***");
                     return false; // 執行完 NG 步驟後，中斷整個測試流程
                 }
-                await Task.Delay(10); // 步驟之間短暫延遲，改善 UI 視覺體驗
+                await Task.Delay(10);
             }
-            return true; // 所有啟用的步驟都成功通過
+            return true; 
         }
 
         private void ResetForNewTest()
         {
             _uiSyncContext.Post(_ =>
             {
-                // 因為不再有 LogText 屬性，所以這裡也不再需要 _logBuilder。
-                // 清空日誌的操作將由 View 自己完成。
-                LogMessageAppended?.Invoke("CLEAR_LOG"); // 發送一個特殊信號來清空
+                LogMessageAppended?.Invoke("CLEAR_LOG"); 
 
                 OverallResult = "TESTTING";
                 OverallResultColor = Color.Silver;
@@ -343,13 +330,10 @@ namespace ASMP.ViewModel
             }, null);
         }
 
-        // --- 為了方便在背景執行緒中更新 UI，封裝的輔助方法 ---
         private void _uiSync_AppendLog(string message)
         {
             // 組合好要顯示的單行訊息
             string formattedMessage = $"[{DateTime.Now:HH:mm:ss.fff}] {message}\r\n";
-
-            // 透過同步上下文，在 UI 執行緒上觸發事件，並將新訊息傳遞出去
             _uiSyncContext.Post(_ => LogMessageAppended?.Invoke(formattedMessage), null);
         }
 

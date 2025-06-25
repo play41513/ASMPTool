@@ -14,7 +14,6 @@ using System.Windows.Input;
 
 namespace ASMP.ViewModel
 {
-    // 自訂 EventArgs 傳遞登入資訊
     public class LoginEventArgs : EventArgs
     {
         public LoginInfoModel LoginInfo { get; }
@@ -24,14 +23,13 @@ namespace ASMP.ViewModel
     public class LoginViewModel : ViewModelBase
     {
         #region Private Fields
-        // 這些是私有欄位，儲存屬性的實際值
+
         private string _workOrder = "";
         private string _employeeID = "";
         private string _productModel = "";
         private string _workStation = "";
         private string _version = "";
 
-        // 用於快取從網路讀取的完整列表，避免重複讀取，提高效能
         private readonly List<string> _allProductModels = [];
         private readonly List<string> _allWorkStations = [];
         private readonly List<string> _allVersions = [];
@@ -44,8 +42,8 @@ namespace ASMP.ViewModel
         #endregion
 
         #region Public Properties (for Data Binding)
-        // 這是公開屬性，View 會綁定到這裡。
-        // 當 set 被呼叫時，它會使用 ViewModelBase 的 SetProperty 方法。
+
+        // 當 set 被呼叫時 會使用 ViewModelBase 的 SetProperty 方法
         // SetProperty 會更新私有欄位、觸發 PropertyChanged 事件通知 UI，並回傳是否真的有變更。
         public string WorkOrder
         {   // 如果值有變更，就通知 LoginCommand 重新評估 CanExecute
@@ -101,8 +99,8 @@ namespace ASMP.ViewModel
 
 
 
-        // 這些是 ComboBox 選項列表的資料來源。
-        // 使用 ObservableCollection 的好處是，當它的內容改變時(Add, Clear)，會自動通知 UI 更新。
+        // ComboBox 資料來源。
+        // ObservableCollection : 當它的內容改變時(Add, Clear)，會自動通知 UI 更新
         public ObservableCollection<string> ProductModels { get; } = [];
         public ObservableCollection<string> WorkStations { get; } = [];
         public ObservableCollection<string> Versions { get; } = [];
@@ -116,7 +114,7 @@ namespace ASMP.ViewModel
         #endregion
 
         #region Events
-        // 事件用於 ViewModel 向 View 發送「通知」，例如「登入成功了，請切換頁面」。
+        // 事件用於 ViewModel 向 View 發送通知
         public event EventHandler<LoginEventArgs>? LoginSuccessful;
         public event Func<string,bool>? RequestConfirmation;
         #endregion
@@ -134,7 +132,7 @@ namespace ASMP.ViewModel
         }
 
         #region Command Methods
-        // CanLogin 方法決定 LoginCommand 是否可執行，直接影響登入按鈕的 Enabled 狀態。
+        // CanLogin 方法決定 LoginCommand 是否可執行，控制登入按鈕的 Enabled 狀態
         private bool CanLogin(object? parameter)
         {
             return !string.IsNullOrWhiteSpace(WorkOrder) &&
@@ -144,7 +142,7 @@ namespace ASMP.ViewModel
                    !string.IsNullOrWhiteSpace(Version);
         }
 
-        // OnLogin 方法是 LoginCommand 的實際執行內容。
+        // OnLogin 是 LoginCommand 的執行內容
         private void OnLogin(object? parameter)
         {
             if (!IsConnected)
@@ -183,8 +181,6 @@ namespace ASMP.ViewModel
             string basePath = Path.Combine(_nasRootPath, "WorkStationFile");
             try
             {
-                // 因為此方法由UI事件觸發，已經在UI執行緒上，
-                // 所以可以直接修改 ObservableCollection，無需 Dispatcher。
                 if (comboBoxName.Contains("ProductModel"))
                 {
                     if (!Directory.Exists(basePath)) return;
@@ -316,14 +312,14 @@ namespace ASMP.ViewModel
                     skipCopy = true;
                 }
             }
-            // 如果沒有 checksum 檔案，預設行為是「不跳過」，也就是要複製。
-            // 'forceCopy' 參數擁有最高優先級，可以覆蓋 checksum 的判斷結果。
+            // 如果沒有 checksum 檔案，預設行為是不跳過
+            // 'forceCopy' 可以覆蓋 checksum 的判斷結果。
             if (forceCopy)
             {
                 skipCopy = false;
             }
 
-            // --- 檔案複製邏輯 ---
+            // 檔案複製
             if (!skipCopy)
             {
                 foreach (FileInfo file in files)
@@ -339,10 +335,10 @@ namespace ASMP.ViewModel
                 }
             }
 
-            // --- 子目錄遞迴邏輯 ---
+            // --- 子目錄遞迴 ---
             foreach (DirectoryInfo subdir in dir.GetDirectories())
             {
-                // 根據 excludeSpecialFolders 參數，決定是否要跳過特殊目錄。
+                // 根據 excludeSpecialFolders 參數，決定是否要跳過特殊目錄
                 if (excludeSpecialFolders && (subdir.Name.Contains("ItemParameter")
                     || subdir.Name.Contains("WorkStationFile") || subdir.Name.Contains("dll")))
                 {
@@ -351,8 +347,8 @@ namespace ASMP.ViewModel
 
                 string temppath = Path.Combine(destinationPath, subdir.Name);
 
-                // 在遞迴呼叫時，我們需要決定子目錄是否也應該被強制複製。
-                // 如果父目錄被強制複製(forceCopy=true)，或父目錄因checksum不符而需要複製(!skipCopy)，那麼子目錄也應該被完整複製。
+                // 在遞迴呼叫時，我們需要決定子目錄是否也應該被強制複製
+                // 如果父目錄被強制複製(forceCopy=true)，或父目錄因checksum不符而需要複製(!skipCopy)，子目錄也被完整複製
                 bool recursiveForceCopy = forceCopy || !skipCopy;
                 if (recursiveForceCopy)
                     CopyFilesRecursively(subdir.FullName, temppath, loginInfo, recursiveForceCopy, excludeSpecialFolders);
@@ -379,7 +375,7 @@ namespace ASMP.ViewModel
         {
             if (string.IsNullOrEmpty(filterPayload)) return;
 
-            var parts = filterPayload.Split('|'); // 我們用 | 來分隔 ComboBox 名稱和關鍵字
+            var parts = filterPayload.Split('|'); 
             if (parts.Length != 2) return;
 
             string comboBoxName = parts[0];

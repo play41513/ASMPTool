@@ -34,8 +34,6 @@ namespace ASMPTool.BLL
             {
                 logString += $"{{{stepResult.TestItemName}__{stepResult.Result}__{stepResult.SpendTime:F2}__{stepResult.Detail}}}";
             }
-            // --- 確定最終結果 ---
-            // *** 修改點：將 testResult.TestResult 改為 testResult.FinalResult ***
             string finalResult = testResult.FinalResult;
             if (finalResult == "TESTTING")
             {

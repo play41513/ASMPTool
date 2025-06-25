@@ -16,7 +16,7 @@ namespace ASMPTool.Commands
             _canExecute = canExecute;
         }
 
-        // 新增一個公開方法，讓 ViewModel可以手動觸發事件
+        // 讓 ViewModel可以手動觸發事件
         public void RaiseCanExecuteChanged()
         {
             CanExecuteChanged?.Invoke(this, EventArgs.Empty);

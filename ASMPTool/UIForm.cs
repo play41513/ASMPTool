@@ -12,11 +12,9 @@ namespace ASMPTool
 {
     public partial class UIForm : Form
     {
-        // 詳解: View 只持有對應的 ViewModel 的一個唯讀實例。
+
         private readonly UIFormViewModel _viewModel;
 
-        // 詳解: 修改建構函式，它不再需要知道如何載入資料，
-        // 而是直接接收從登入畫面傳遞過來的、已經包含所有必要資訊的 LoginInfoModel 物件。
         public UIForm(LoginInfoModel loginInfo)
         {
             InitializeComponent();
@@ -120,7 +118,7 @@ namespace ASMPTool
             if (e.KeyChar == (char)Keys.Enter && !string.IsNullOrWhiteSpace(tBoxScanBarcode.Text))
             {
                 _viewModel.BarcodeEnteredCommand.Execute(tBoxScanBarcode.Text);
-                e.Handled = true; // 避免發出 "叮" 的聲音
+                e.Handled = true;
             }
         }
 
@@ -149,7 +147,6 @@ namespace ASMPTool
 
         private void UIForm_Resize(object sender, EventArgs e)
         {
-            // 視窗大小改變時，重新置中掃描面板
             if (plMessageBox.Visible)
             {
                 plMessageBox.Top = this.Height / 2 - plMessageBox.Height / 2;
@@ -158,7 +155,6 @@ namespace ASMPTool
         }
         private void SetupDataGridViewColumns()
         {
-            // 關閉自動產生欄位，我們將完全手動控制
             dataGridView.AutoGenerateColumns = false;
             // 隱藏最左邊的行標頭
             dataGridView.RowHeadersVisible = false;
@@ -168,7 +164,7 @@ namespace ASMPTool
             {
                 Name = "IndexColumn",
                 HeaderText = " ", // 欄位標題文字
-                DataPropertyName = "Index", // ***對應到 TestStepViewModel 的 "Index" 屬性 ***
+                DataPropertyName = "Index", // 對應到 TestStepViewModel 的 "Index" 屬性
                 Width = 50,
                 ReadOnly = true
             };
@@ -179,7 +175,7 @@ namespace ASMPTool
             {
                 Name = "TestItemColumn",
                 HeaderText = "Test Item",
-                DataPropertyName = "TestItem", // *** 對應到 TestStepViewModel 的 "TestItem" 屬性 ***
+                DataPropertyName = "TestItem", 
                 Width = 300,
                 ReadOnly = true
             };
@@ -190,7 +186,7 @@ namespace ASMPTool
             {
                 Name = "TestStepColumn",
                 HeaderText = "Test Step",
-                DataPropertyName = "TestStep", // *** 對應到 TestStepViewModel 的 "TestStep" 屬性 ***
+                DataPropertyName = "TestStep", 
                 Width = 300,
                 ReadOnly = true
             };
@@ -199,9 +195,9 @@ namespace ASMPTool
             // 欄位 4: Result
             var resultCol = new DataGridViewTextBoxColumn
             {
-                Name = "Result", // Name要與 CellFormatting 中的判斷一致
+                Name = "Result",
                 HeaderText = "Result",
-                DataPropertyName = "Result", // *** 對應到 TestStepViewModel 的 "Result" 屬性 ***
+                DataPropertyName = "Result",
                 Width = 120,
                 ReadOnly = true
             };
@@ -212,7 +208,7 @@ namespace ASMPTool
             {
                 Name = "SpendTimeColumn",
                 HeaderText = "Spend Time",
-                DataPropertyName = "SpendTime", // *** 對應到 TestStepViewModel 的 "SpendTime" 屬性 ***
+                DataPropertyName = "SpendTime", 
                 Width = 120,
                 ReadOnly = true
             };
@@ -223,29 +219,26 @@ namespace ASMPTool
             {
                 Name = "DetailColumn",
                 HeaderText = "Detail",
-                DataPropertyName = "Detail", // *** 對應到 TestStepViewModel 的 "Detail" 屬性 ***
-                AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill, // 自動填滿剩餘寬度
+                DataPropertyName = "Detail", // 對應到 TestStepViewModel 的 "Detail" 屬性 
+                AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill,
                 ReadOnly = true
             };
             dataGridView.Columns.Add(detailCol);
         }
         private void OnLogMessageAppended(string message)
         {
-            // 確保在 UI 執行緒上執行
             if (this.InvokeRequired)
             {
                 this.Invoke(() => OnLogMessageAppended(message));
                 return;
             }
 
-            // 如果收到清空信號，就清空 TextBox
             if (message == "CLEAR_LOG")
             {
                 textBox.Clear();
             }
             else
-            {
-                // 否則，使用 AppendText 高效地附加新日誌
+            {       
                 textBox.AppendText(message);
             }
         }
@@ -254,9 +247,7 @@ namespace ASMPTool
 
         private void textBox_TextChanged(object sender, EventArgs e)
         {
-            // 1. 將插入符 (游標) 移動到文字的結尾
             textBox.SelectionStart = textBox.Text.Length;
-            // 2. 捲動檢視以顯示插入符所在的位置
             textBox.ScrollToCaret();
         }
     }

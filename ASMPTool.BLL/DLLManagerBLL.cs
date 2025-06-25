@@ -3,32 +3,27 @@
 using ASMPTool.DAL;
 using ASMPTool.Model;
 using System;
-using System.Text.RegularExpressions; // 為了更安全的解析，可以考慮使用正規表達式
+using System.Text.RegularExpressions;
 
 namespace ASMPTool.BLL
 {
     public class DLLManagerBLL
     {
-        // *** 修改點 1: 新增 TestResultModel 參數 ***
         public static bool ExecuteSpecificPlugin(string dllFile, string iniPath, out string msg, IntPtr ownerHwnd, TestResultModel testResult)
         {
             string result = IDLLManagerDAL.ExecuteSpecificPlugin(dllFile, iniPath, ownerHwnd);
             msg = result;
 
-            // *** 修改點 2: 將 testResult 傳遞給 StringAnalysis ***
             StringAnalysis(result, testResult);
 
             return !result.Contains("ERROR");
         }
 
-        // *** 修改點 3: 新增 TestResultModel 參數 ***
         public static void StringAnalysis(string result, TestResultModel testResult)
         {
-            // 使用正規表達式來安全地解析字串，避免因找不到 '#' 而拋出例外
             Match mac1Match = Regex.Match(result, @"MAC1:(.*?)#");
             if (mac1Match.Success)
             {
-                // *** 修改點 4: 使用傳入的 testResult 物件 ***
                 testResult.MACNumber1 = mac1Match.Groups[1].Value.Trim().ToUpper();
             }
 
@@ -50,8 +45,6 @@ namespace ASMPTool.BLL
                 testResult.SerialNumber = snMatch.Groups[1].Value.Trim().ToUpper();
             }
         }
-
-        // --- 以下方法無需修改 ---
         public static void ReleaseDll(string dllFile)
         {
             IDLLManagerDAL.ReleaseDll(dllFile);
