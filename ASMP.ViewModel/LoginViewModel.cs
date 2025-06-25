@@ -289,6 +289,9 @@ namespace ASMP.ViewModel
             string itemParamDestination = Path.Combine(destinationPath, "ItemParameter", loginInfo.ProductModel, loginInfo.WorkStation);
             CopyFilesRecursively(itemParamSource, itemParamDestination, loginInfo, forceCopy: false, excludeSpecialFolders: false);
 
+            // 5: 解鎖目錄(Zone.Identifier : Windows會自動鎖住Nas Copy過來的exe檔，所以要解鎖)
+            FileUnblocker.UnblockDirectory(destinationPath);
+
         }
         private void CopyFilesRecursively(string sourcePath, string destinationPath, LoginInfoModel loginInfo, bool forceCopy, bool excludeSpecialFolders)
         {
