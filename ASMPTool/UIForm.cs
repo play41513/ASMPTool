@@ -85,6 +85,7 @@ namespace ASMPTool
                             plMessageBox.Left = this.Width / 2 - plMessageBox.Width / 2;
                             tBoxScanBarcode.Clear();
                             tBoxScanBarcode.Focus();
+                            WindowHelper.ForceFocus(this.Handle);
                         }
                         break;
                 }
