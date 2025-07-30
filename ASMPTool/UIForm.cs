@@ -55,7 +55,7 @@ namespace ASMPTool
 
             // DataGridView 的資料來源設定
             // 將 DataGridView 的 DataSource 指向 ViewModel 中的 BindingList<TestStepViewModel>。
-            SetupDataGridViewColumns(); 
+            SetupDataGridViewColumns();
             dataGridView.DataSource = _viewModel.TestSteps;
 
             // --- 事件訂閱 (Event Subscriptions) ---
@@ -75,6 +75,7 @@ namespace ASMPTool
                 switch (e.PropertyName)
                 {
                     case nameof(UIFormViewModel.IsScanBarcodeVisible):
+                        this.TopMost = _viewModel.IsScanBarcodeVisible;
                         // 根據 ViewModel 的狀態，手動設定 Visible 屬性
                         plMessageBox.Visible = _viewModel.IsScanBarcodeVisible;
 
@@ -83,9 +84,9 @@ namespace ASMPTool
                         {
                             plMessageBox.Top = this.Height / 2 - plMessageBox.Height / 2;
                             plMessageBox.Left = this.Width / 2 - plMessageBox.Width / 2;
-                            tBoxScanBarcode.Clear();
-                            tBoxScanBarcode.Focus();
+                            tBoxScanBarcode.Clear();                            
                             WindowHelper.ForceFocus(this.Handle);
+                            tBoxScanBarcode.Focus();
                         }
                         break;
                 }
@@ -96,10 +97,11 @@ namespace ASMPTool
         {
             this.Invoke(() =>
             {
-                if (rowIndex >= 0 && rowIndex < dataGridView.RowCount)
+                int targetRowIndex = rowIndex + 1;
+                if (targetRowIndex >= 0 && targetRowIndex < dataGridView.RowCount)
                 {
                     // 確保要滾動到的行是可見的
-                    dataGridView.FirstDisplayedScrollingRowIndex = Math.Max(0, rowIndex - dataGridView.DisplayedRowCount(true) + 1);
+                    dataGridView.FirstDisplayedScrollingRowIndex = Math.Max(0, targetRowIndex - dataGridView.DisplayedRowCount(true) + 1);
                 }
             });
         }
@@ -176,7 +178,7 @@ namespace ASMPTool
             {
                 Name = "TestItemColumn",
                 HeaderText = "Test Item",
-                DataPropertyName = "TestItem", 
+                DataPropertyName = "TestItem",
                 Width = 300,
                 ReadOnly = true
             };
@@ -187,7 +189,7 @@ namespace ASMPTool
             {
                 Name = "TestStepColumn",
                 HeaderText = "Test Step",
-                DataPropertyName = "TestStep", 
+                DataPropertyName = "TestStep",
                 Width = 300,
                 ReadOnly = true
             };
@@ -209,7 +211,7 @@ namespace ASMPTool
             {
                 Name = "SpendTimeColumn",
                 HeaderText = "Spend Time",
-                DataPropertyName = "SpendTime", 
+                DataPropertyName = "SpendTime",
                 Width = 120,
                 ReadOnly = true
             };
@@ -239,7 +241,7 @@ namespace ASMPTool
                 textBox.Clear();
             }
             else
-            {       
+            {
                 textBox.AppendText(message);
             }
         }
@@ -250,6 +252,16 @@ namespace ASMPTool
         {
             textBox.SelectionStart = textBox.Text.Length;
             textBox.ScrollToCaret();
+        }
+
+        private void UIForm_Load(object sender, EventArgs e)
+        {
+
+        }
+
+        private void lbResult_DoubleClick(object sender, EventArgs e)
+        {
+            plMessageBox.Visible = plMessageBox.Visible ? false:true;
         }
     }
 }

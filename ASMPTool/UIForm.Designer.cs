@@ -78,40 +78,40 @@
             tableLayoutPanel1.Controls.Add(tableLayoutPanel4, 0, 2);
             tableLayoutPanel1.Dock = DockStyle.Fill;
             tableLayoutPanel1.Location = new Point(0, 0);
-            tableLayoutPanel1.Margin = new Padding(2, 2, 2, 2);
+            tableLayoutPanel1.Margin = new Padding(2);
             tableLayoutPanel1.Name = "tableLayoutPanel1";
             tableLayoutPanel1.RowCount = 4;
-            tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Absolute, 60F));
+            tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Absolute, 75F));
             tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Percent, 66.6666641F));
             tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Percent, 33.3333321F));
-            tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Absolute, 64F));
-            tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Absolute, 16F));
-            tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Absolute, 16F));
-            tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Absolute, 16F));
-            tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Absolute, 16F));
-            tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Absolute, 16F));
-            tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Absolute, 16F));
-            tableLayoutPanel1.Size = new Size(1024, 538);
+            tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Absolute, 80F));
+            tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Absolute, 20F));
+            tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Absolute, 20F));
+            tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Absolute, 20F));
+            tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Absolute, 20F));
+            tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Absolute, 20F));
+            tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Absolute, 20F));
+            tableLayoutPanel1.Size = new Size(1280, 672);
             tableLayoutPanel1.TabIndex = 0;
             // 
             // tableLayoutPanel2
             // 
             tableLayoutPanel2.ColumnCount = 3;
-            tableLayoutPanel2.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 200F));
+            tableLayoutPanel2.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 250F));
             tableLayoutPanel2.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
-            tableLayoutPanel2.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 104F));
+            tableLayoutPanel2.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 130F));
             tableLayoutPanel2.Controls.Add(pictureBox1, 0, 0);
             tableLayoutPanel2.Controls.Add(lbTime, 2, 0);
             tableLayoutPanel2.Dock = DockStyle.Fill;
             tableLayoutPanel2.Location = new Point(2, 2);
-            tableLayoutPanel2.Margin = new Padding(2, 2, 2, 2);
-            tableLayoutPanel2.MinimumSize = new Size(8, 0);
+            tableLayoutPanel2.Margin = new Padding(2);
+            tableLayoutPanel2.MinimumSize = new Size(10, 0);
             tableLayoutPanel2.Name = "tableLayoutPanel2";
             tableLayoutPanel2.RowCount = 1;
             tableLayoutPanel2.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
-            tableLayoutPanel2.RowStyles.Add(new RowStyle(SizeType.Absolute, 55F));
-            tableLayoutPanel2.RowStyles.Add(new RowStyle(SizeType.Absolute, 55F));
-            tableLayoutPanel2.Size = new Size(1020, 56);
+            tableLayoutPanel2.RowStyles.Add(new RowStyle(SizeType.Absolute, 70F));
+            tableLayoutPanel2.RowStyles.Add(new RowStyle(SizeType.Absolute, 70F));
+            tableLayoutPanel2.Size = new Size(1276, 71);
             tableLayoutPanel2.TabIndex = 5;
             // 
             // pictureBox1
@@ -119,9 +119,9 @@
             pictureBox1.Dock = DockStyle.Fill;
             pictureBox1.Image = (Image)resources.GetObject("pictureBox1.Image");
             pictureBox1.Location = new Point(2, 2);
-            pictureBox1.Margin = new Padding(2, 2, 2, 2);
+            pictureBox1.Margin = new Padding(2);
             pictureBox1.Name = "pictureBox1";
-            pictureBox1.Size = new Size(196, 52);
+            pictureBox1.Size = new Size(246, 67);
             pictureBox1.SizeMode = PictureBoxSizeMode.StretchImage;
             pictureBox1.TabIndex = 0;
             pictureBox1.TabStop = false;
@@ -131,10 +131,10 @@
             lbTime.AutoSize = true;
             lbTime.Dock = DockStyle.Fill;
             lbTime.Font = new Font("Microsoft JhengHei UI", 12F, FontStyle.Bold);
-            lbTime.Location = new Point(918, 0);
+            lbTime.Location = new Point(1148, 0);
             lbTime.Margin = new Padding(2, 0, 2, 0);
             lbTime.Name = "lbTime";
-            lbTime.Size = new Size(100, 56);
+            lbTime.Size = new Size(126, 71);
             lbTime.TabIndex = 1;
             lbTime.Text = "lbTime";
             lbTime.TextAlign = ContentAlignment.BottomCenter;
@@ -161,14 +161,14 @@
             tableLayoutPanel3.Controls.Add(lbWorkOrder, 1, 2);
             tableLayoutPanel3.Controls.Add(panel1, 0, 1);
             tableLayoutPanel3.Dock = DockStyle.Fill;
-            tableLayoutPanel3.Location = new Point(2, 474);
-            tableLayoutPanel3.Margin = new Padding(2, 2, 2, 2);
+            tableLayoutPanel3.Location = new Point(2, 593);
+            tableLayoutPanel3.Margin = new Padding(2);
             tableLayoutPanel3.Name = "tableLayoutPanel3";
             tableLayoutPanel3.RowCount = 3;
             tableLayoutPanel3.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
-            tableLayoutPanel3.RowStyles.Add(new RowStyle(SizeType.Absolute, 4F));
+            tableLayoutPanel3.RowStyles.Add(new RowStyle(SizeType.Absolute, 5F));
             tableLayoutPanel3.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
-            tableLayoutPanel3.Size = new Size(1020, 62);
+            tableLayoutPanel3.Size = new Size(1276, 77);
             tableLayoutPanel3.TabIndex = 1;
             // 
             // lbWorkOrderTitle
@@ -177,10 +177,10 @@
             lbWorkOrderTitle.Dock = DockStyle.Fill;
             lbWorkOrderTitle.Font = new Font("Microsoft JhengHei UI", 12F);
             lbWorkOrderTitle.ForeColor = Color.White;
-            lbWorkOrderTitle.Location = new Point(2, 33);
+            lbWorkOrderTitle.Location = new Point(2, 41);
             lbWorkOrderTitle.Margin = new Padding(2, 0, 2, 0);
             lbWorkOrderTitle.Name = "lbWorkOrderTitle";
-            lbWorkOrderTitle.Size = new Size(150, 29);
+            lbWorkOrderTitle.Size = new Size(189, 36);
             lbWorkOrderTitle.TabIndex = 23;
             lbWorkOrderTitle.Text = "工單 WorkOrder :";
             lbWorkOrderTitle.TextAlign = ContentAlignment.MiddleLeft;
@@ -191,10 +191,10 @@
             lbVersion.Dock = DockStyle.Fill;
             lbVersion.Font = new Font("Microsoft JhengHei UI", 12F);
             lbVersion.ForeColor = Color.White;
-            lbVersion.Location = new Point(855, 0);
+            lbVersion.Location = new Point(1070, 0);
             lbVersion.Margin = new Padding(2, 0, 2, 0);
             lbVersion.Name = "lbVersion";
-            lbVersion.Size = new Size(163, 29);
+            lbVersion.Size = new Size(204, 36);
             lbVersion.TabIndex = 22;
             lbVersion.Text = "Version";
             lbVersion.TextAlign = ContentAlignment.MiddleCenter;
@@ -205,10 +205,10 @@
             lbVersionTitle.Dock = DockStyle.Fill;
             lbVersionTitle.Font = new Font("Microsoft JhengHei UI", 12F);
             lbVersionTitle.ForeColor = Color.White;
-            lbVersionTitle.Location = new Point(681, 0);
+            lbVersionTitle.Location = new Point(852, 0);
             lbVersionTitle.Margin = new Padding(2, 0, 2, 0);
             lbVersionTitle.Name = "lbVersionTitle";
-            lbVersionTitle.Size = new Size(170, 29);
+            lbVersionTitle.Size = new Size(214, 36);
             lbVersionTitle.TabIndex = 21;
             lbVersionTitle.Text = "| 版本 Version :";
             lbVersionTitle.TextAlign = ContentAlignment.MiddleLeft;
@@ -219,10 +219,10 @@
             lbWorkStation.Dock = DockStyle.Fill;
             lbWorkStation.Font = new Font("Microsoft JhengHei UI", 12F);
             lbWorkStation.ForeColor = Color.White;
-            lbWorkStation.Location = new Point(507, 0);
+            lbWorkStation.Location = new Point(635, 0);
             lbWorkStation.Margin = new Padding(2, 0, 2, 0);
             lbWorkStation.Name = "lbWorkStation";
-            lbWorkStation.Size = new Size(170, 29);
+            lbWorkStation.Size = new Size(213, 36);
             lbWorkStation.TabIndex = 20;
             lbWorkStation.Text = "WorkStation";
             lbWorkStation.TextAlign = ContentAlignment.MiddleCenter;
@@ -233,10 +233,10 @@
             lbWorkStationTitle.Dock = DockStyle.Fill;
             lbWorkStationTitle.Font = new Font("Microsoft JhengHei UI", 12F);
             lbWorkStationTitle.ForeColor = Color.White;
-            lbWorkStationTitle.Location = new Point(344, 0);
+            lbWorkStationTitle.Location = new Point(430, 0);
             lbWorkStationTitle.Margin = new Padding(2, 0, 2, 0);
             lbWorkStationTitle.Name = "lbWorkStationTitle";
-            lbWorkStationTitle.Size = new Size(159, 29);
+            lbWorkStationTitle.Size = new Size(201, 36);
             lbWorkStationTitle.TabIndex = 19;
             lbWorkStationTitle.Text = "| 工站 WorkStation :";
             lbWorkStationTitle.TextAlign = ContentAlignment.MiddleCenter;
@@ -247,10 +247,10 @@
             lbProduct.Dock = DockStyle.Fill;
             lbProduct.Font = new Font("Microsoft JhengHei UI", 12F);
             lbProduct.ForeColor = Color.White;
-            lbProduct.Location = new Point(156, 0);
+            lbProduct.Location = new Point(195, 0);
             lbProduct.Margin = new Padding(2, 0, 2, 0);
             lbProduct.Name = "lbProduct";
-            lbProduct.Size = new Size(184, 29);
+            lbProduct.Size = new Size(231, 36);
             lbProduct.TabIndex = 18;
             lbProduct.Text = "Product";
             lbProduct.TextAlign = ContentAlignment.MiddleCenter;
@@ -264,7 +264,7 @@
             lbProductTitle.Location = new Point(2, 0);
             lbProductTitle.Margin = new Padding(2, 0, 2, 0);
             lbProductTitle.Name = "lbProductTitle";
-            lbProductTitle.Size = new Size(150, 29);
+            lbProductTitle.Size = new Size(189, 36);
             lbProductTitle.TabIndex = 17;
             lbProductTitle.Text = "產品 Product :";
             lbProductTitle.TextAlign = ContentAlignment.MiddleLeft;
@@ -275,10 +275,10 @@
             lbEmployeeID.Dock = DockStyle.Fill;
             lbEmployeeID.Font = new Font("Microsoft JhengHei UI", 12F);
             lbEmployeeID.ForeColor = Color.White;
-            lbEmployeeID.Location = new Point(855, 33);
+            lbEmployeeID.Location = new Point(1070, 41);
             lbEmployeeID.Margin = new Padding(2, 0, 2, 0);
             lbEmployeeID.Name = "lbEmployeeID";
-            lbEmployeeID.Size = new Size(163, 29);
+            lbEmployeeID.Size = new Size(204, 36);
             lbEmployeeID.TabIndex = 3;
             lbEmployeeID.Text = "Employee";
             lbEmployeeID.TextAlign = ContentAlignment.MiddleCenter;
@@ -289,10 +289,10 @@
             lbEmployeeIDTitle.Dock = DockStyle.Fill;
             lbEmployeeIDTitle.Font = new Font("Microsoft JhengHei UI", 12F);
             lbEmployeeIDTitle.ForeColor = Color.White;
-            lbEmployeeIDTitle.Location = new Point(681, 33);
+            lbEmployeeIDTitle.Location = new Point(852, 41);
             lbEmployeeIDTitle.Margin = new Padding(2, 0, 2, 0);
             lbEmployeeIDTitle.Name = "lbEmployeeIDTitle";
-            lbEmployeeIDTitle.Size = new Size(170, 29);
+            lbEmployeeIDTitle.Size = new Size(214, 36);
             lbEmployeeIDTitle.TabIndex = 2;
             lbEmployeeIDTitle.Text = "| 工號 Employee ID :";
             lbEmployeeIDTitle.TextAlign = ContentAlignment.MiddleLeft;
@@ -304,10 +304,10 @@
             lbWorkOrder.Dock = DockStyle.Fill;
             lbWorkOrder.Font = new Font("Microsoft JhengHei UI", 12F);
             lbWorkOrder.ForeColor = Color.White;
-            lbWorkOrder.Location = new Point(156, 33);
+            lbWorkOrder.Location = new Point(195, 41);
             lbWorkOrder.Margin = new Padding(2, 0, 2, 0);
             lbWorkOrder.Name = "lbWorkOrder";
-            lbWorkOrder.Size = new Size(347, 29);
+            lbWorkOrder.Size = new Size(436, 36);
             lbWorkOrder.TabIndex = 1;
             lbWorkOrder.Text = "WorkOrder";
             lbWorkOrder.TextAlign = ContentAlignment.MiddleCenter;
@@ -317,22 +317,22 @@
             panel1.BackColor = SystemColors.ButtonHighlight;
             tableLayoutPanel3.SetColumnSpan(panel1, 6);
             panel1.Dock = DockStyle.Fill;
-            panel1.Location = new Point(2, 31);
-            panel1.Margin = new Padding(2, 2, 2, 2);
+            panel1.Location = new Point(2, 38);
+            panel1.Margin = new Padding(2);
             panel1.Name = "panel1";
-            panel1.Size = new Size(1016, 1);
+            panel1.Size = new Size(1272, 1);
             panel1.TabIndex = 24;
             // 
             // dataGridView
             // 
             dataGridView.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
             dataGridView.Dock = DockStyle.Fill;
-            dataGridView.Location = new Point(2, 62);
-            dataGridView.Margin = new Padding(2, 2, 2, 2);
+            dataGridView.Location = new Point(2, 77);
+            dataGridView.Margin = new Padding(2);
             dataGridView.Name = "dataGridView";
             dataGridView.ReadOnly = true;
             dataGridView.RowHeadersWidth = 51;
-            dataGridView.Size = new Size(1020, 271);
+            dataGridView.Size = new Size(1276, 340);
             dataGridView.TabIndex = 2;
             dataGridView.CellFormatting += DataGridView_CellFormatting;
             // 
@@ -341,23 +341,23 @@
             tableLayoutPanel4.BackColor = Color.White;
             tableLayoutPanel4.ColumnCount = 4;
             tableLayoutPanel4.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 71.91011F));
-            tableLayoutPanel4.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 8F));
+            tableLayoutPanel4.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 10F));
             tableLayoutPanel4.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 28.0898933F));
-            tableLayoutPanel4.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 9F));
+            tableLayoutPanel4.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 12F));
             tableLayoutPanel4.Controls.Add(lbResult, 2, 2);
             tableLayoutPanel4.Controls.Add(lbTotalTime, 2, 1);
             tableLayoutPanel4.Controls.Add(label3, 0, 1);
             tableLayoutPanel4.Controls.Add(textBox, 0, 2);
             tableLayoutPanel4.Dock = DockStyle.Fill;
-            tableLayoutPanel4.Location = new Point(2, 337);
-            tableLayoutPanel4.Margin = new Padding(2, 2, 2, 2);
+            tableLayoutPanel4.Location = new Point(2, 421);
+            tableLayoutPanel4.Margin = new Padding(2);
             tableLayoutPanel4.Name = "tableLayoutPanel4";
             tableLayoutPanel4.RowCount = 4;
-            tableLayoutPanel4.RowStyles.Add(new RowStyle(SizeType.Absolute, 4F));
-            tableLayoutPanel4.RowStyles.Add(new RowStyle(SizeType.Absolute, 20F));
+            tableLayoutPanel4.RowStyles.Add(new RowStyle(SizeType.Absolute, 5F));
+            tableLayoutPanel4.RowStyles.Add(new RowStyle(SizeType.Absolute, 25F));
             tableLayoutPanel4.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
-            tableLayoutPanel4.RowStyles.Add(new RowStyle(SizeType.Absolute, 6F));
-            tableLayoutPanel4.Size = new Size(1020, 133);
+            tableLayoutPanel4.RowStyles.Add(new RowStyle(SizeType.Absolute, 8F));
+            tableLayoutPanel4.Size = new Size(1276, 168);
             tableLayoutPanel4.TabIndex = 3;
             // 
             // lbResult
@@ -365,22 +365,23 @@
             lbResult.BackColor = Color.Silver;
             lbResult.Dock = DockStyle.Fill;
             lbResult.Font = new Font("Microsoft JhengHei UI", 20F, FontStyle.Bold);
-            lbResult.Location = new Point(731, 24);
+            lbResult.Location = new Point(913, 30);
             lbResult.Margin = new Padding(2, 0, 2, 0);
             lbResult.Name = "lbResult";
-            lbResult.Size = new Size(277, 103);
+            lbResult.Size = new Size(348, 130);
             lbResult.TabIndex = 7;
             lbResult.Text = "WAIT";
             lbResult.TextAlign = ContentAlignment.MiddleCenter;
+            lbResult.DoubleClick += lbResult_DoubleClick;
             // 
             // lbTotalTime
             // 
             lbTotalTime.Dock = DockStyle.Top;
             lbTotalTime.Font = new Font("Microsoft JhengHei UI", 12F, FontStyle.Bold);
-            lbTotalTime.Location = new Point(731, 4);
+            lbTotalTime.Location = new Point(913, 5);
             lbTotalTime.Margin = new Padding(2, 0, 2, 0);
             lbTotalTime.Name = "lbTotalTime";
-            lbTotalTime.Size = new Size(277, 20);
+            lbTotalTime.Size = new Size(348, 25);
             lbTotalTime.TabIndex = 5;
             lbTotalTime.Text = "Total Time : 00.00";
             lbTotalTime.TextAlign = ContentAlignment.MiddleRight;
@@ -390,10 +391,10 @@
             label3.AutoSize = true;
             label3.Dock = DockStyle.Fill;
             label3.Font = new Font("Microsoft JhengHei UI", 12F);
-            label3.Location = new Point(2, 4);
+            label3.Location = new Point(2, 5);
             label3.Margin = new Padding(2, 0, 2, 0);
             label3.Name = "label3";
-            label3.Size = new Size(717, 20);
+            label3.Size = new Size(897, 25);
             label3.TabIndex = 0;
             label3.Text = "紀錄 Record";
             label3.TextAlign = ContentAlignment.MiddleLeft;
@@ -401,10 +402,10 @@
             // textBox
             // 
             textBox.Dock = DockStyle.Fill;
-            textBox.Location = new Point(2, 26);
-            textBox.Margin = new Padding(2, 2, 2, 2);
+            textBox.Location = new Point(2, 32);
+            textBox.Margin = new Padding(2);
             textBox.Name = "textBox";
-            textBox.Size = new Size(717, 99);
+            textBox.Size = new Size(897, 126);
             textBox.TabIndex = 8;
             textBox.Text = "";
             textBox.TextChanged += textBox_TextChanged;
@@ -419,10 +420,10 @@
             plMessageBox.Controls.Add(lbMessageBoxTitle);
             plMessageBox.Controls.Add(panel2);
             plMessageBox.ImeMode = ImeMode.Alpha;
-            plMessageBox.Location = new Point(253, 122);
-            plMessageBox.Margin = new Padding(2, 2, 2, 2);
+            plMessageBox.Location = new Point(316, 152);
+            plMessageBox.Margin = new Padding(2);
             plMessageBox.Name = "plMessageBox";
-            plMessageBox.Size = new Size(465, 148);
+            plMessageBox.Size = new Size(581, 185);
             plMessageBox.TabIndex = 2;
             plMessageBox.Visible = false;
             // 
@@ -434,7 +435,7 @@
             lbMessageBoxTitle.Location = new Point(0, 0);
             lbMessageBoxTitle.Margin = new Padding(2, 0, 2, 0);
             lbMessageBoxTitle.Name = "lbMessageBoxTitle";
-            lbMessageBoxTitle.Size = new Size(465, 54);
+            lbMessageBoxTitle.Size = new Size(581, 68);
             lbMessageBoxTitle.TabIndex = 1;
             lbMessageBoxTitle.Text = "掃描Barcode (Scan Barcode)";
             lbMessageBoxTitle.TextAlign = ContentAlignment.MiddleCenter;
@@ -443,10 +444,10 @@
             // 
             panel2.BackColor = Color.White;
             panel2.Controls.Add(tBoxScanBarcode);
-            panel2.Location = new Point(7, 47);
-            panel2.Margin = new Padding(2, 2, 2, 2);
+            panel2.Location = new Point(9, 59);
+            panel2.Margin = new Padding(2);
             panel2.Name = "panel2";
-            panel2.Size = new Size(450, 92);
+            panel2.Size = new Size(562, 115);
             panel2.TabIndex = 0;
             // 
             // tBoxScanBarcode
@@ -454,26 +455,27 @@
             tBoxScanBarcode.BackColor = SystemColors.ButtonShadow;
             tBoxScanBarcode.Font = new Font("Microsoft JhengHei UI", 20F);
             tBoxScanBarcode.ForeColor = Color.FromArgb(64, 64, 64);
-            tBoxScanBarcode.Location = new Point(18, 33);
-            tBoxScanBarcode.Margin = new Padding(2, 2, 2, 2);
+            tBoxScanBarcode.Location = new Point(22, 41);
+            tBoxScanBarcode.Margin = new Padding(2);
             tBoxScanBarcode.Name = "tBoxScanBarcode";
-            tBoxScanBarcode.Size = new Size(421, 41);
+            tBoxScanBarcode.Size = new Size(525, 50);
             tBoxScanBarcode.TabIndex = 0;
             tBoxScanBarcode.TextAlign = HorizontalAlignment.Center;
             tBoxScanBarcode.KeyPress += tBoxScanBarcode_KeyPress;
             // 
             // UIForm
             // 
-            AutoScaleDimensions = new SizeF(96F, 96F);
+            AutoScaleDimensions = new SizeF(120F, 120F);
             AutoScaleMode = AutoScaleMode.Dpi;
-            ClientSize = new Size(1024, 538);
+            ClientSize = new Size(1280, 672);
             Controls.Add(plMessageBox);
             Controls.Add(tableLayoutPanel1);
-            Margin = new Padding(2, 2, 2, 2);
-            MinimumSize = new Size(1040, 39);
+            Margin = new Padding(2);
+            MinimumSize = new Size(1296, 47);
             Name = "UIForm";
             Text = "ASMPTool (Actionstar.)";
             FormClosing += UIForm_FormClosing;
+            Load += UIForm_Load;
             Resize += UIForm_Resize;
             tableLayoutPanel1.ResumeLayout(false);
             tableLayoutPanel2.ResumeLayout(false);

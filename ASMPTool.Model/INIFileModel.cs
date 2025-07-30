@@ -5,6 +5,7 @@ namespace ASMPTool.Model
     {
         public bool Enable { get; set; }
         public string Name { get; set; } = string.Empty;
+        public bool Sync { get; set; }
         public bool FunctionTest { get; set; }
         public string FunctionTestType { get; set; } = string.Empty;
         public string FunctionTestPath { get; set; } = string.Empty;

@@ -18,6 +18,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\..\..\PluginContracts\PluginContracts\PluginContracts.csproj" />
     <ProjectReference Include="..\ASMPTool.Model\ASMPTool.Model.csproj" />
   </ItemGroup>
 

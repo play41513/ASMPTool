@@ -18,6 +18,7 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ASMPTool.DAL", "ASMPTool.DAL\ASMPTool.DAL.csproj", "{452DEA03-AED2-4D81-804E-50F8DC26A580}"
 	ProjectSection(ProjectDependencies) = postProject
 		{0B9BE708-4F7A-452D-99CB-C5DB692AFA21} = {0B9BE708-4F7A-452D-99CB-C5DB692AFA21}
+		{3C940845-64D8-4EA4-8C77-667D05AB1E6B} = {3C940845-64D8-4EA4-8C77-667D05AB1E6B}
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ASMPTool.Model", "ASMPTool.Model\ASMPTool.Model.csproj", "{0B9BE708-4F7A-452D-99CB-C5DB692AFA21}"
@@ -35,6 +36,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 	ProjectSection(SolutionItems) = preProject
 		.editorconfig = .editorconfig
 	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PluginContracts", "..\..\..\PluginContracts\PluginContracts\PluginContracts.csproj", "{3C940845-64D8-4EA4-8C77-667D05AB1E6B}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -118,6 +121,18 @@ Global
 		{8B4AD9D3-30AA-40FB-9BB9-B4BE86E9D6C7}.Release|x64.Build.0 = Release|Any CPU
 		{8B4AD9D3-30AA-40FB-9BB9-B4BE86E9D6C7}.Release|x86.ActiveCfg = Release|Any CPU
 		{8B4AD9D3-30AA-40FB-9BB9-B4BE86E9D6C7}.Release|x86.Build.0 = Release|Any CPU
+		{3C940845-64D8-4EA4-8C77-667D05AB1E6B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3C940845-64D8-4EA4-8C77-667D05AB1E6B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3C940845-64D8-4EA4-8C77-667D05AB1E6B}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{3C940845-64D8-4EA4-8C77-667D05AB1E6B}.Debug|x64.Build.0 = Debug|Any CPU
+		{3C940845-64D8-4EA4-8C77-667D05AB1E6B}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{3C940845-64D8-4EA4-8C77-667D05AB1E6B}.Debug|x86.Build.0 = Debug|Any CPU
+		{3C940845-64D8-4EA4-8C77-667D05AB1E6B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3C940845-64D8-4EA4-8C77-667D05AB1E6B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3C940845-64D8-4EA4-8C77-667D05AB1E6B}.Release|x64.ActiveCfg = Release|Any CPU
+		{3C940845-64D8-4EA4-8C77-667D05AB1E6B}.Release|x64.Build.0 = Release|Any CPU
+		{3C940845-64D8-4EA4-8C77-667D05AB1E6B}.Release|x86.ActiveCfg = Release|Any CPU
+		{3C940845-64D8-4EA4-8C77-667D05AB1E6B}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

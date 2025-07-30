@@ -39,6 +39,7 @@ namespace ASMPTool.BLL
                 {
                     Enable = INIFileDAL.ReadBoolean(_filePath, section, "Enable", false),
                     Name = name,
+                    Sync = INIFileDAL.ReadBoolean(_filePath, section, "Sync", false),
                     FunctionTest = INIFileDAL.ReadBoolean(_filePath, section, "FunctionEnable"),
                     FunctionTestType = INIFileDAL.ReadString(_filePath, section, "FunctionType"),
                     FunctionTestPath = INIFileDAL.ReadString(_filePath, section, "FunctionIniPath"),
