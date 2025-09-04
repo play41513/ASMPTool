@@ -44,8 +44,6 @@ namespace ASMPTool
             _viewModel.WorkStations.CollectionChanged += (s, e) => { RefreshComboBoxDataSource(ComboBoxWorkStation, _viewModel.WorkStations); };
             _viewModel.Versions.CollectionChanged += (s, e) => { RefreshComboBoxDataSource(ComboBoxVersion, _viewModel.Versions); };
 
-            //在綁定設定完成後，立即根據 ViewModel 的當前狀態設定一次按鈕的初始狀態。
-            pictureBoxConnect.Load(_viewModel.IsConnected ? "icon\\connect.png" : "icon\\disconnect.png");
             btnLogin.Enabled = _viewModel.LoginCommand.CanExecute(null);
             if (btnLogin.Enabled)
                 btnLogin.BackColor = Color.White;

@@ -54,7 +54,32 @@ namespace ASMPTool.BLL
             // 4. 回傳這個包含完整資料的 model 物件
             return model;
         }
+        public static void SaveToIni(INIFileModel model, string filePath)
+        {
+            // 如果檔案存在，先刪除，以確保是全新的寫入
+            if (File.Exists(filePath))
+            {
+                File.Delete(filePath);
+            }
 
+            for (int i = 0; i < model.Tasks.Count; i++)
+            {
+                string section = $"item{i + 1}";
+                var task = model.Tasks[i];
+
+                INIFileDAL.WriteString(filePath, section, "ItemName", task.Name);
+                INIFileDAL.WriteString(filePath, section, "Enable", task.Enable ? "1" : "0");
+                INIFileDAL.WriteString(filePath, section, "Sync", task.Sync ? "1" : "0");
+                INIFileDAL.WriteString(filePath, section, "FunctionEnable", task.FunctionTest ? "1" : "0");
+                INIFileDAL.WriteString(filePath, section, "FunctionType", task.FunctionTestType);
+                INIFileDAL.WriteString(filePath, section, "FunctionIniPath", task.FunctionTestPath);
+
+                for (int j = 0; j < task.NGTest.Count; j++)
+                {
+                    INIFileDAL.WriteString(filePath, section, $"NGItem{j + 1}", task.NGTest[j].ToString());
+                }
+            }
+        }
         private List<int> GetNGTests(string section)
         {
             List<int> ngTests = [];

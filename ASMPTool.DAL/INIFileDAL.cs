@@ -2,12 +2,15 @@
 using System;
 using System.IO;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 
 namespace ASMPTool.DAL
 {
 
     public class INIFileDAL()
     {
+        [DllImport("kernel32")]
+        private static extern long WritePrivateProfileString(string section, string key, string val, string filePath);
 
         static public string ReadString(string _filePath, string section, string key, string defaultValue = "")
         {
@@ -59,6 +62,10 @@ namespace ASMPTool.DAL
                 return defaultValue;
             }
             return value == "1";
+        }
+        static public void WriteString(string filePath, string section, string key, string value)
+        {
+            WritePrivateProfileString(section, key, value, filePath);
         }
     }
 }

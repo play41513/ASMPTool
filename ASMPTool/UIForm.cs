@@ -7,6 +7,7 @@ using System.ComponentModel;
 using System.Drawing;
 using System.Windows.Forms;
 using System;
+using System.Collections.Generic;
 
 namespace ASMPTool
 {
@@ -14,23 +15,13 @@ namespace ASMPTool
     {
 
         private readonly UIFormViewModel _viewModel;
+        private readonly LoginInfoModel _loginInfo;
 
         public UIForm(LoginInfoModel loginInfo)
         {
             InitializeComponent();
-
-            // --- ViewModel 的建立與資料準備 ---
-            // 1. 根據登入資訊，準備測試計畫檔案的路徑。
-            string filePath = $@"WorkStationFile\{loginInfo.ProductModel}\{loginInfo.WorkStation}\{loginInfo.Version}";
-
-            // 2. 透過 BLL 載入測試計畫。
-            var iniFileBll = new INIFileBLL(filePath);
-            var testPlan = iniFileBll.LoadToModel();
-
-            // 3. 建立 ViewModel，並將所有需要的資料（視窗Handle、登入資訊）傳入。
+            _loginInfo = loginInfo;
             _viewModel = new UIFormViewModel(this.Handle, loginInfo);
-
-            // 4. 設定所有的資料繫結與事件訂閱。
             SetupBindingsAndEvents();
         }
 
@@ -52,6 +43,7 @@ namespace ASMPTool
             lbResult.DataBindings.Add("Text", _viewModel, nameof(UIFormViewModel.OverallResult));
             lbResult.DataBindings.Add("BackColor", _viewModel, nameof(UIFormViewModel.OverallResultColor));
             lbTotalTime.DataBindings.Add("Text", _viewModel, nameof(UIFormViewModel.TotalTestTime));
+            lbLoopStatus.DataBindings.Add("Text", _viewModel, nameof(UIFormViewModel.LoopStatus));
 
             // DataGridView 的資料來源設定
             // 將 DataGridView 的 DataSource 指向 ViewModel 中的 BindingList<TestStepViewModel>。
@@ -64,31 +56,45 @@ namespace ASMPTool
             _viewModel.ShowMessageRequested += OnShowMessageRequested;
             _viewModel.PropertyChanged += ViewModel_PropertyChanged;
             _viewModel.LogMessageAppended += OnLogMessageAppended;
+            _viewModel.ShowMttSelectionDialogRequested += OnShowMttSelectionDialogRequested;
         }
 
-        #region ViewModel Event Handlers (由 ViewModel 觸發，View 執行)
+        #region ViewModel Event Handlers
+
+        private MttSettings? OnShowMttSelectionDialogRequested(List<Tuple<string, int>> headers, INIFileModel testPlan)
+        {
+            using (var mttForm = new frmMttSelection(headers, testPlan, _loginInfo))
+            {
+                if (mttForm.ShowDialog(this) == DialogResult.OK)
+                {
+                    return new MttSettings
+                    {
+                        ModifiedTestPlan = mttForm.ModifiedTestPlan,
+                        LoopCount = mttForm.LoopCount
+                    };
+                }
+            }
+            return null;
+        }
 
         private void ViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)
         {
             this.Invoke(() =>
             {
-                switch (e.PropertyName)
+                if (e.PropertyName == nameof(UIFormViewModel.IsScanBarcodeVisible))
                 {
-                    case nameof(UIFormViewModel.IsScanBarcodeVisible):
-                        this.TopMost = _viewModel.IsScanBarcodeVisible;
-                        // 根據 ViewModel 的狀態，手動設定 Visible 屬性
-                        plMessageBox.Visible = _viewModel.IsScanBarcodeVisible;
-
-                        // 如果是要顯示面板，就執行置中、清空和對焦等操作
-                        if (_viewModel.IsScanBarcodeVisible)
-                        {
-                            plMessageBox.Top = this.Height / 2 - plMessageBox.Height / 2;
-                            plMessageBox.Left = this.Width / 2 - plMessageBox.Width / 2;
-                            tBoxScanBarcode.Clear();                            
-                            WindowHelper.ForceFocus(this.Handle);
-                            tBoxScanBarcode.Focus();
-                        }
-                        break;
+                    // 根據 ViewModel 的狀態，手動設定 Visible 屬性
+                    plMessageBox.Visible = _viewModel.IsScanBarcodeVisible;
+                    
+                    // 如果是要顯示面板，就執行置中、清空和對焦等操作
+                    if (_viewModel.IsScanBarcodeVisible)
+                    {
+                        plMessageBox.Top = this.Height / 2 - plMessageBox.Height / 2;
+                        plMessageBox.Left = this.Width / 2 - plMessageBox.Width / 2;
+                        tBoxScanBarcode.Clear();
+                        WindowHelper.ForceFocus(this.Handle);
+                        tBoxScanBarcode.Focus();
+                    }
                 }
             });
         }
@@ -97,11 +103,14 @@ namespace ASMPTool
         {
             this.Invoke(() =>
             {
-                int targetRowIndex = rowIndex + 1;
-                if (targetRowIndex >= 0 && targetRowIndex < dataGridView.RowCount)
+                if (rowIndex >= 0 && rowIndex < dataGridView.RowCount)
                 {
-                    // 確保要滾動到的行是可見的
-                    dataGridView.FirstDisplayedScrollingRowIndex = Math.Max(0, targetRowIndex - dataGridView.DisplayedRowCount(true) + 1);
+                    int firstDisplayed = dataGridView.FirstDisplayedScrollingRowIndex;
+                    int displayedCount = dataGridView.DisplayedRowCount(true);
+                    if (rowIndex < firstDisplayed || rowIndex >= firstDisplayed + displayedCount)
+                    {
+                        dataGridView.FirstDisplayedScrollingRowIndex = Math.Max(0, rowIndex);
+                    }
                 }
             });
         }
@@ -112,16 +121,58 @@ namespace ASMPTool
             tBoxScanBarcode.Focus();
         }
 
+        private void OnLogMessageAppended(LogDisplayInfo logInfo)
+        {
+            if (this.InvokeRequired)
+            {
+                this.Invoke(() => OnLogMessageAppended(logInfo));
+                return;
+            }
+
+            if (logInfo.Text == "CLEAR_LOG")
+            {
+                textBox.Clear();
+            }
+            else
+            {
+                // 產生帶有標題的格式化字串          
+                string displayText = $"{logInfo.PassCount.ToString("D5")} |" +
+                                     $"{logInfo.Timestamp}| " +
+                                     $"[Barcode :{logInfo.Barcode}] " +
+                                     $"[Result :{logInfo.Result}] ";
+                if (logInfo.Result != "PASS")
+                {
+                    displayText += $"[ErrorCode :{logInfo.ErrorCode}] " +
+                                     $"[Detail :{logInfo.ErrorMessage}]";
+                }
+                displayText += "\r\n";
+
+                    textBox.SelectionStart = textBox.TextLength;
+                textBox.SelectionLength = 0;
+                textBox.SelectionColor = logInfo.IsFail ? Color.Red : Color.Black;
+                textBox.AppendText(displayText);
+                textBox.SelectionColor = textBox.ForeColor; // 還原預設顏色
+            }
+        }
+
         #endregion
 
-        #region UI Event Handlers (將操作委派給 ViewModel)
+        #region UI Event Handlers
 
         private void tBoxScanBarcode_KeyPress(object sender, KeyPressEventArgs e)
         {
-            if (e.KeyChar == (char)Keys.Enter && !string.IsNullOrWhiteSpace(tBoxScanBarcode.Text))
+            if (e.KeyChar == (char)Keys.Enter)
             {
-                _viewModel.BarcodeEnteredCommand.Execute(tBoxScanBarcode.Text);
                 e.Handled = true;
+                string inputText = tBoxScanBarcode.Text.Trim();
+                if (inputText.Equals("MTT", StringComparison.OrdinalIgnoreCase))
+                {
+                    _viewModel.EnterMttModeCommand.Execute(null);
+                }
+                else if (!string.IsNullOrWhiteSpace(inputText))
+                {
+                    _viewModel.BarcodeEnteredCommand.Execute(inputText);
+                }
             }
         }
 
@@ -136,14 +187,16 @@ namespace ASMPTool
 
         private void DataGridView_CellFormatting(object sender, DataGridViewCellFormattingEventArgs e)
         {
-            // 根據 ViewModel 中計算好的顏色來設定字體顏色
-            if (e.RowIndex >= 0 && e.ColumnIndex == dataGridView.Columns["Result"].Index)
+            if (e.RowIndex >= 0 && e.ColumnIndex == dataGridView.Columns["Result"]?.Index)
             {
-                var stepVM = _viewModel.TestSteps[e.RowIndex];
-                if (stepVM != null && e.CellStyle != null)
+                if (_viewModel.TestSteps.Count > e.RowIndex)
                 {
-                    e.CellStyle.Font = new Font(e.CellStyle.Font, FontStyle.Bold);
-                    e.CellStyle.ForeColor = stepVM.ResultColor;
+                    var stepVM = _viewModel.TestSteps[e.RowIndex];
+                    if (stepVM != null && e.CellStyle != null)
+                    {
+                        e.CellStyle.Font = new Font(e.CellStyle.Font, FontStyle.Bold);
+                        e.CellStyle.ForeColor = stepVM.ResultColor;
+                    }
                 }
             }
         }
@@ -156,97 +209,21 @@ namespace ASMPTool
                 plMessageBox.Left = this.Width / 2 - plMessageBox.Width / 2;
             }
         }
+
         private void SetupDataGridViewColumns()
         {
             dataGridView.AutoGenerateColumns = false;
             // 隱藏最左邊的行標頭
             dataGridView.RowHeadersVisible = false;
+            dataGridView.AllowUserToAddRows = false;
 
-            // 欄位 1: Index (序號)
-            var indexCol = new DataGridViewTextBoxColumn
-            {
-                Name = "IndexColumn",
-                HeaderText = " ", // 欄位標題文字
-                DataPropertyName = "Index", // 對應到 TestStepViewModel 的 "Index" 屬性
-                Width = 50,
-                ReadOnly = true
-            };
-            dataGridView.Columns.Add(indexCol);
-
-            // 欄位 2: TestItem
-            var testItemCol = new DataGridViewTextBoxColumn
-            {
-                Name = "TestItemColumn",
-                HeaderText = "Test Item",
-                DataPropertyName = "TestItem",
-                Width = 300,
-                ReadOnly = true
-            };
-            dataGridView.Columns.Add(testItemCol);
-
-            // 欄位 3: TestStep
-            var testStepCol = new DataGridViewTextBoxColumn
-            {
-                Name = "TestStepColumn",
-                HeaderText = "Test Step",
-                DataPropertyName = "TestStep",
-                Width = 300,
-                ReadOnly = true
-            };
-            dataGridView.Columns.Add(testStepCol);
-
-            // 欄位 4: Result
-            var resultCol = new DataGridViewTextBoxColumn
-            {
-                Name = "Result",
-                HeaderText = "Result",
-                DataPropertyName = "Result",
-                Width = 120,
-                ReadOnly = true
-            };
-            dataGridView.Columns.Add(resultCol);
-
-            // 欄位 5: SpendTime
-            var spendTimeCol = new DataGridViewTextBoxColumn
-            {
-                Name = "SpendTimeColumn",
-                HeaderText = "Spend Time",
-                DataPropertyName = "SpendTime",
-                Width = 120,
-                ReadOnly = true
-            };
-            dataGridView.Columns.Add(spendTimeCol);
-
-            // 欄位 6: Detail
-            var detailCol = new DataGridViewTextBoxColumn
-            {
-                Name = "DetailColumn",
-                HeaderText = "Detail",
-                DataPropertyName = "Detail", // 對應到 TestStepViewModel 的 "Detail" 屬性 
-                AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill,
-                ReadOnly = true
-            };
-            dataGridView.Columns.Add(detailCol);
+            dataGridView.Columns.Add(new DataGridViewTextBoxColumn { Name = "IndexColumn", HeaderText = " ", DataPropertyName = "Index", Width = 50, ReadOnly = true });
+            dataGridView.Columns.Add(new DataGridViewTextBoxColumn { Name = "TestItemColumn", HeaderText = "Test Item", DataPropertyName = "TestItem", Width = 300, ReadOnly = true });
+            dataGridView.Columns.Add(new DataGridViewTextBoxColumn { Name = "TestStepColumn", HeaderText = "Test Step", DataPropertyName = "TestStep", Width = 300, ReadOnly = true });
+            dataGridView.Columns.Add(new DataGridViewTextBoxColumn { Name = "Result", HeaderText = "Result", DataPropertyName = "Result", Width = 120, ReadOnly = true });
+            dataGridView.Columns.Add(new DataGridViewTextBoxColumn { Name = "SpendTimeColumn", HeaderText = "Spend Time", DataPropertyName = "SpendTime", Width = 120, ReadOnly = true });
+            dataGridView.Columns.Add(new DataGridViewTextBoxColumn { Name = "DetailColumn", HeaderText = "Detail", DataPropertyName = "Detail", AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill, ReadOnly = true });
         }
-        private void OnLogMessageAppended(string message)
-        {
-            if (this.InvokeRequired)
-            {
-                this.Invoke(() => OnLogMessageAppended(message));
-                return;
-            }
-
-            if (message == "CLEAR_LOG")
-            {
-                textBox.Clear();
-            }
-            else
-            {
-                textBox.AppendText(message);
-            }
-        }
-
-        #endregion
 
         private void textBox_TextChanged(object sender, EventArgs e)
         {
@@ -254,14 +231,16 @@ namespace ASMPTool
             textBox.ScrollToCaret();
         }
 
-        private void UIForm_Load(object sender, EventArgs e)
-        {
-
-        }
+        private void UIForm_Load(object sender, EventArgs e) { }
 
         private void lbResult_DoubleClick(object sender, EventArgs e)
         {
-            plMessageBox.Visible = plMessageBox.Visible ? false:true;
+            plMessageBox.Visible = !plMessageBox.Visible;
+            plMessageBox.Enabled = !plMessageBox.Enabled;
+            if(plMessageBox.Visible)
+                tBoxScanBarcode.Focus();
         }
+
+        #endregion
     }
 }

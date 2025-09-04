@@ -25,7 +25,7 @@ namespace ASMPTool.BLL
             string date = DateTime.Now.ToString("yyyyMMdd_HHmmss");
             string localLogFolder = @"C:\log";
             Directory.CreateDirectory(localLogFolder);
-            string csvPath = Path.Combine(localLogFolder, $"{date}_{loginInfo.WorkStation}.csv");
+            
 
             // --- 組合 Log 字串 ---
             string logString = "";
@@ -42,6 +42,7 @@ namespace ASMPTool.BLL
 
             // --- 寫入本地 ---
             string[] headers = ["ProductName", "EmployeeID", "Version", "Barcode", "UnitNumber", "Date", "Result", "ErrorCode", "WorkOrder", "SN", "MAC1", "MAC2", "MAC3", "LOG"];
+            string csvPath = Path.Combine(localLogFolder, $"{date}_{loginInfo.WorkStation}[Result_{finalResult}].csv");
             using (StreamWriter writer = new(csvPath))
             {
                 writer.WriteLine(string.Join(",", headers));
@@ -74,7 +75,7 @@ namespace ASMPTool.BLL
                 string csvFolder = Path.Combine(loginInfo.NAS_IP_Address, loginInfo.ProductModel, loginInfo.WorkStation);
                 Directory.CreateDirectory(csvFolder);
 
-                string csvPath = Path.Combine(csvFolder, $"{date}_{loginInfo.WorkStation}.csv");
+                string csvPath = Path.Combine(csvFolder, $"{date}_{loginInfo.WorkStation}[Result_{finalResult}].csv");
 
                 string[] headers = ["ProductName", "EmployeeID", "Version", "Barcode", "UnitNumber", "Date", "Result", "ErrorCode", "WorkOrder", "SN", "MAC1", "MAC2", "MAC3", "LOG"];
                 using (StreamWriter writer = new(csvPath))

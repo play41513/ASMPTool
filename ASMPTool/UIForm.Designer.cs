@@ -34,6 +34,7 @@
             tableLayoutPanel2 = new TableLayoutPanel();
             pictureBox1 = new PictureBox();
             lbTime = new Label();
+            lbLoopStatus = new Label();
             tableLayoutPanel3 = new TableLayoutPanel();
             lbWorkOrderTitle = new Label();
             lbVersion = new Label();
@@ -102,6 +103,7 @@
             tableLayoutPanel2.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 130F));
             tableLayoutPanel2.Controls.Add(pictureBox1, 0, 0);
             tableLayoutPanel2.Controls.Add(lbTime, 2, 0);
+            tableLayoutPanel2.Controls.Add(lbLoopStatus, 1, 0);
             tableLayoutPanel2.Dock = DockStyle.Fill;
             tableLayoutPanel2.Location = new Point(2, 2);
             tableLayoutPanel2.Margin = new Padding(2);
@@ -138,6 +140,17 @@
             lbTime.TabIndex = 1;
             lbTime.Text = "lbTime";
             lbTime.TextAlign = ContentAlignment.BottomCenter;
+            // 
+            // lbLoopStatus
+            // 
+            lbLoopStatus.AutoSize = true;
+            lbLoopStatus.Font = new Font("Microsoft JhengHei UI", 12F);
+            lbLoopStatus.ForeColor = SystemColors.Highlight;
+            lbLoopStatus.Location = new Point(253, 0);
+            lbLoopStatus.Name = "lbLoopStatus";
+            lbLoopStatus.Size = new Size(161, 25);
+            lbLoopStatus.TabIndex = 2;
+            lbLoopStatus.Text = "LoopTest Status";
             // 
             // tableLayoutPanel3
             // 
@@ -522,5 +535,6 @@
         private Label lbProductTitle;
         private Panel panel1;
         private RichTextBox textBox;
+        private Label lbLoopStatus;
     }
 }

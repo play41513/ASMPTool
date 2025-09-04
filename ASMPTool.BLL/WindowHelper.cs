@@ -38,6 +38,7 @@ namespace ASMPTool.BLL
         private static extern IntPtr SetFocus(IntPtr hWnd);
 
         private static readonly IntPtr HWND_TOPMOST = new(-1);
+        private static readonly IntPtr HWND_NOTOPMOST = new(-2);
         private const uint SWP_NOSIZE = 0x0001;
         private const uint SWP_NOMOVE = 0x0002;
 
@@ -65,6 +66,7 @@ namespace ASMPTool.BLL
             // 4. 設定視窗為最上層，並嘗試取得焦點
             // 執行一連串的設定來確保焦點被搶奪過來
             SetWindowPos(hWnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
+            SetWindowPos(hWnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
             SetForegroundWindow(hWnd);
             SetActiveWindow(hWnd);
             SetFocus(hWnd);
