@@ -99,7 +99,6 @@ namespace ASMP.ViewModel
                  TestSteps.Add(new TestStepViewModel(i, _testPlan.Tasks[i]));
             }
 
-            // 啟動任務
             _clockTimer = new System.Threading.Timer(OnClockTick, null, 0, 1000);
             Task.Run(MainTestLoop); // 在背景執行緒中啟動主測試流程
         }
@@ -267,7 +266,6 @@ namespace ASMP.ViewModel
                 }
             }
 
-            // 步驟 3: 處理最後剩下的一批並行任務
             if (parallelExecutionList.Any())
             {
                 _uiSync_AppendLog($"--- Starting Final Parallel Block ({parallelExecutionList.Count} groups) ---");
