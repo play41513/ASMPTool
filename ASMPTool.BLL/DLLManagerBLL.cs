@@ -2,8 +2,10 @@
 
 using ASMPTool.DAL;
 using ASMPTool.Model;
+using System.Text.Json;
 using System;
 using System.Text.RegularExpressions;
+
 
 namespace ASMPTool.BLL
 {
@@ -21,28 +23,46 @@ namespace ASMPTool.BLL
 
         public static void StringAnalysis(string result, TestResultModel testResult)
         {
-            Match mac1Match = Regex.Match(result, @"MAC1:(.*?)#");
-            if (mac1Match.Success)
-            {
-                testResult.MACNumber1 = mac1Match.Groups[1].Value.Trim().ToUpper();
-            }
+            // 提取 DATA: 後面的 JSON 物件
+            Match dataMatch = Regex.Match(result, @"DATA:({.*?})#");
 
-            Match mac2Match = Regex.Match(result, @"MAC2:(.*?)#");
-            if (mac2Match.Success)
+            if (dataMatch.Success)
             {
-                testResult.MACNumber2 = mac2Match.Groups[1].Value.Trim().ToUpper();
-            }
+                string jsonString = dataMatch.Groups[1].Value;
 
-            Match mac3Match = Regex.Match(result, @"MAC3:(.*?)#");
-            if (mac3Match.Success)
-            {
-                testResult.MACNumber3 = mac3Match.Groups[1].Value.Trim().ToUpper();
-            }
+                try
+                {
+                    // 解析提取出來的 JSON 字串
+                    using (JsonDocument doc = JsonDocument.Parse(jsonString))
+                    {
+                        JsonElement root = doc.RootElement;
 
-            Match snMatch = Regex.Match(result, @"SN:(.*?)#");
-            if (snMatch.Success)
-            {
-                testResult.SerialNumber = snMatch.Groups[1].Value.Trim().ToUpper();
+                        // 嘗試讀取每個 key 的值，這樣即使某個 key 不存在也不會出錯
+                        if (root.TryGetProperty("MAC1", out JsonElement mac1Element))
+                        {
+                            testResult.MACNumber1 = mac1Element.GetString()?.Trim().ToUpper() ?? string.Empty;
+                        }
+
+                        if (root.TryGetProperty("MAC2", out JsonElement mac2Element))
+                        {
+                            testResult.MACNumber2 = mac2Element.GetString()?.Trim().ToUpper() ?? string.Empty;
+                        }
+
+                        if (root.TryGetProperty("MAC3", out JsonElement mac3Element))
+                        {
+                            testResult.MACNumber3 = mac3Element.GetString()?.Trim().ToUpper() ?? string.Empty;
+                        }
+
+                        if (root.TryGetProperty("SN", out JsonElement snElement))
+                        {
+                            testResult.SerialNumber = snElement.GetString()?.Trim().ToUpper() ?? string.Empty;
+                        }
+                    }
+                }
+                catch (JsonException ex)
+                {
+                    Console.WriteLine($"JSON parsing failed: {ex.Message}");
+                }
             }
         }
         public static void ReleaseDll(string dllFile)

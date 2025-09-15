@@ -362,9 +362,24 @@ namespace ASMP.ViewModel
         {
             while (!token.IsCancellationRequested)
             {
-                bool connected = LoggingBLL.CheckNasConnection();
-                if (IsConnected != connected) IsConnected = connected;
-                _nasRootPath = IsConnected ? @"\\swtool\swtool\tools\ASMPTool" : Directory.GetCurrentDirectory();
+                try 
+                {
+                    bool connected = LoggingBLL.CheckNasConnection();
+                    if (IsConnected != connected)
+                    {
+                        IsConnected = connected;
+                    }
+
+                    _nasRootPath = IsConnected ? @"\\swtool\swtool\tools\ASMPTool" : Directory.GetCurrentDirectory();
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error checking NAS connection: {ex.Message}");
+                    if (IsConnected) 
+                    {
+                        IsConnected = false;
+                    }
+                }
                 await Task.Delay(1000, token);
             }
         }

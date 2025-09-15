@@ -166,11 +166,5 @@ namespace ASMPTool
                 comboBox.SelectionStart = comboBox.Text.Length;
             }
         }
-
-        private void TBoxWorkOrder_KeyPress(object sender, KeyPressEventArgs e)
-        {
-            if(e.KeyChar == 13)
-                TBoxEmployeeID.Focus();
-        }
     }
 }

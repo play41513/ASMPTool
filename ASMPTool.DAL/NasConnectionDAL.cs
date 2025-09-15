@@ -215,6 +215,12 @@ namespace ASMPTool.DAL
                     }
                     else
                     {
+                        result = WNetAddConnection2(netResource, "user1234", "user1234", CONNECT_TEMPORARY);
+                        if (result == 0)
+                        {
+                            Console.WriteLine("帳密成功連接NAS");
+                            return true;
+                        }
                         Console.WriteLine($"無帳密連接時，發生錯誤: {result}");
                         throw new Win32Exception(result);
                     }

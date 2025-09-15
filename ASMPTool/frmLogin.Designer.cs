@@ -119,7 +119,7 @@
             TBoxWorkOrder.TabIndex = 1;
             TBoxWorkOrder.Text = "000-000000000000000";
             TBoxWorkOrder.MouseClick += TBox_MouseClick;
-            TBoxWorkOrder.KeyPress += TBoxWorkOrder_KeyPress;
+            TBoxWorkOrder.KeyPress += TBox_KeyPress;
             // 
             // btnLogin
             // 
@@ -245,6 +245,7 @@
             // 
             // pictureBoxConnect
             // 
+            pictureBoxConnect.Image = Properties.Resources.disconnect;
             pictureBoxConnect.Location = new Point(858, 76);
             pictureBoxConnect.Name = "pictureBoxConnect";
             pictureBoxConnect.Size = new Size(44, 43);
