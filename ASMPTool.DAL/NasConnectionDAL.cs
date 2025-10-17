@@ -47,6 +47,53 @@ namespace ASMPTool.DAL
         private const string DEFAULT_LOG_PATH = @"\\swtool\swtool\logs";
 
         /// <summary>
+        /// 檢查並建立與指定路徑的連線，包含 DNS 和 IP 備援機制。
+        /// </summary>
+        /// <returns>連接是否成功</returns>
+        public static bool CheckNasConnection(string dnsPath, string ipPath)
+        {
+            // 優先嘗試 DNS 名稱
+            if (TryConnect(dnsPath, "", ""))
+            {
+                return true;
+            }
+
+            // 如果 DNS 失敗，再嘗試 IP 位址和指定帳密
+            if (TryConnect(ipPath, "user1234", "user1234"))
+            {
+                return true;
+            }
+
+            Console.WriteLine("DNS 和 IP 連線嘗試均失敗。");
+            return false;
+        }
+
+        /// <summary>
+        /// 嘗試連接到指定的網路路徑。
+        /// </summary>
+        private static bool TryConnect(string path, string username, string password)
+        {
+            try
+            {
+                // 先檢查路徑是否已經可以直接存取
+                if (IsPathAccessible(path))
+                {
+                    Console.WriteLine($"路徑 '{path}' 已可存取。");
+                    return true;
+                }
+
+                // 如果無法直接存取，則嘗試建立連線
+                Console.WriteLine($"嘗試使用憑證連接到 '{path}'...");
+                return ConnectWithCredentials(path, username, password);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"連接到 '{path}' 時發生錯誤: {ex.Message}");
+                return false;
+            }
+        }
+
+        /// <summary>
         /// 檢查並建立LOG的連線
         /// </summary>
         /// <param name="logPath">log路徑  預設為\\swtool\swtool\log</param>

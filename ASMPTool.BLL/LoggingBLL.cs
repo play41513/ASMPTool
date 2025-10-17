@@ -70,8 +70,9 @@ namespace ASMPTool.BLL
             try
             {
                 // 確保 NAS 的 LOG 路徑可用
-                if (!NasConnectionDAL.CheckLogPathConnection(loginInfo.NAS_IP_Address))
+                if (!Directory.Exists(loginInfo.NAS_IP_Address))
                 {
+                    Console.WriteLine($"NAS LOG 路徑 '{loginInfo.NAS_IP_Address}' 無法存取。");
                     return false;
                 }
 
@@ -107,9 +108,9 @@ namespace ASMPTool.BLL
         /// 檢查與 NAS 的基本連線狀態。
         /// </summary>
         /// <returns>如果可以連線到預設路徑，則為 true。</returns>
-        public static bool CheckNasConnection()
+        public static bool CheckNasConnection(string dnsPath, string ipPath)
         {
-            return NasConnectionDAL.CheckLogPathConnection();
+            return NasConnectionDAL.CheckNasConnection(dnsPath, ipPath);
         }
         /// <summary>
         /// 將 TestResult 的所有步驟轉換為 JSON 格式的 Log 字串

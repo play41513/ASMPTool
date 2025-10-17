@@ -135,6 +135,8 @@ namespace ASMPTool
             }
             else
             {
+                if(logInfo.Barcode == null || logInfo.Barcode == "0") 
+                    return;
                 // 產生帶有標題的格式化字串          
                 string displayText = $"{logInfo.PassCount.ToString("D5")} |" +
                                      $"{logInfo.Timestamp}| " +
@@ -147,7 +149,7 @@ namespace ASMPTool
                 }
                 displayText += "\r\n";
 
-                    textBox.SelectionStart = textBox.TextLength;
+                textBox.SelectionStart = textBox.TextLength;
                 textBox.SelectionLength = 0;
                 textBox.SelectionColor = logInfo.IsFail ? Color.Red : Color.Black;
                 textBox.AppendText(displayText);

@@ -35,6 +35,8 @@ namespace ASMP.ViewModel
         private readonly List<string> _allVersions = [];
 
         private bool _isConnected = false;
+        private const string _nasDnsRoot = @"\\swtool\swtool";
+        private const string _nasIpRoot = @"\\192.168.14.26\swtool";
         private string _nasRootPath = Directory.GetCurrentDirectory();
 
         private readonly CancellationTokenSource _cts;
@@ -166,7 +168,7 @@ namespace ASMP.ViewModel
             // 2. 執行業務邏輯
             if (IsConnected)
             {
-                HandleNASOperations(@"\\swtool\swtool\tools\ASMPTool", loginInfo);
+                HandleNASOperations(Path.Combine(_nasRootPath, "tools", "ASMPTool"), loginInfo);
             }
             SaveRecordFile();
 
@@ -178,7 +180,7 @@ namespace ASMP.ViewModel
         {
             if (string.IsNullOrEmpty(comboBoxName)) return;
 
-            string basePath = Path.Combine(_nasRootPath, "WorkStationFile");
+            string basePath = Path.Combine(_nasRootPath, "tools", "ASMPTool", "WorkStationFile");
             try
             {
                 if (comboBoxName.Contains("ProductModel"))
@@ -263,11 +265,12 @@ namespace ASMP.ViewModel
 
         private void HandleNASOperations(string toolPath, LoginInfoModel loginInfo)
         {
-            LoggingBLL.CheckNasConnection();
-            string logDir = Path.Combine(@"\\swtool\swtool\logs", loginInfo.ProductModel, loginInfo.WorkStation);
+            //LoggingBLL.CheckNasConnection();
+            string logDir = Path.Combine(_nasRootPath, "logs", loginInfo.ProductModel, loginInfo.WorkStation);
             Directory.CreateDirectory(logDir);
 
-            loginInfo.NAS_IP_Address = @"\\swtool\swtool\logs";
+            // 將 NAS 的根路徑傳遞給後續的日誌記錄使用
+            loginInfo.NAS_IP_Address = Path.Combine(_nasRootPath, "logs");
 
             string destinationPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!;
 
@@ -362,25 +365,43 @@ namespace ASMP.ViewModel
         {
             while (!token.IsCancellationRequested)
             {
-                try 
+                try
                 {
-                    bool connected = LoggingBLL.CheckNasConnection();
+                    bool connected = false;
+                    string successfulPath = Directory.GetCurrentDirectory();
+                    string dnsLogPath = Path.Combine(_nasDnsRoot, "logs");
+                    string ipLogPath = Path.Combine(_nasIpRoot, "logs");
+                    // 嘗試 DNS
+                    if (LoggingBLL.CheckNasConnection(_nasDnsRoot, _nasIpRoot))
+                    {
+                        connected = true;
+                        // 判斷當前是用哪個路徑成功連上的
+                        if (Directory.Exists(_nasDnsRoot))
+                        {
+                            successfulPath = _nasDnsRoot;
+                        }
+                        else if (Directory.Exists(_nasIpRoot))
+                        {
+                            successfulPath = _nasIpRoot;
+                        }
+                    }
+
                     if (IsConnected != connected)
                     {
                         IsConnected = connected;
                     }
-
-                    _nasRootPath = IsConnected ? @"\\swtool\swtool\tools\ASMPTool" : Directory.GetCurrentDirectory();
+                    _nasRootPath = successfulPath;
                 }
                 catch (Exception ex)
                 {
                     Console.WriteLine($"Error checking NAS connection: {ex.Message}");
-                    if (IsConnected) 
+                    if (IsConnected)
                     {
                         IsConnected = false;
                     }
+                    _nasRootPath = Directory.GetCurrentDirectory();
                 }
-                await Task.Delay(1000, token);
+                await Task.Delay(1000, token); // 保持每秒檢查一次
             }
         }
 
