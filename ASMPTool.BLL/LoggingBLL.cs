@@ -43,7 +43,7 @@ namespace ASMPTool.BLL
 
             // --- 寫入本地 ---
             string[] headers = ["ProductName", "EmployeeID", "Version", "Barcode", "UnitNumber", "Date", "Result", "ErrorCode", "WorkOrder", "SN", "MAC1", "MAC2", "MAC3", "LOG"];
-            string csvPath = Path.Combine(localLogFolder, $"{date}_{loginInfo.WorkStation}[Result_{finalResult}].csv");
+            string csvPath = Path.Combine(localLogFolder, $"{date}_[{testResult.ScanBarcodeNumber}][Result_{finalResult}].csv");
             // 建立一個符合 CSV 規範的安全字串，可以放在LOG欄位裡
             string csvSafeLogString = $"\"{jsonLogString.Replace("\"", "\"\"")}\"";
             using (StreamWriter writer = new(csvPath))
@@ -76,10 +76,10 @@ namespace ASMPTool.BLL
                     return false;
                 }
 
-                string csvFolder = Path.Combine(loginInfo.NAS_IP_Address, loginInfo.ProductModel, loginInfo.WorkStation);
+                string csvFolder = Path.Combine(loginInfo.NAS_IP_Address, loginInfo.ProductModel, loginInfo.WorkStation, loginInfo.WorkOrder);
                 Directory.CreateDirectory(csvFolder);
 
-                string csvPath = Path.Combine(csvFolder, $"{date}_{loginInfo.WorkStation}[Result_{finalResult}].csv");
+                string csvPath = Path.Combine(csvFolder, $"{date}_[{testResult.ScanBarcodeNumber}][Result_{finalResult}].csv");
 
                 string[] headers = ["ProductName", "EmployeeID", "Version", "Barcode", "UnitNumber", "Date", "Result", "ErrorCode", "WorkOrder", "SN", "MAC1", "MAC2", "MAC3", "LOG"];
                 using (StreamWriter writer = new(csvPath))
@@ -136,14 +136,12 @@ namespace ASMPTool.BLL
                 }
 
                 // 嘗試從 Detail 中提取 DATA 的 JSON 部分
-                Match dataMatch = Regex.Match(stepResult.Detail, @"DATA:({.*?}|\[.*?\])#");
+                Match dataMatch = Regex.Match(stepResult.Detail, @"DATA:({.*}|\[.*\])#", RegexOptions.Singleline);
                 if (dataMatch.Success)
                 {
                     string jsonString = dataMatch.Groups[1].Value;
                     try
                     {
-                        // 解析 JSON 字串並將其根元素 Clone 出來儲存
-                        // .Clone() 很重要，因為 JsonDocument 在 using 結束後會被釋放
                         using (JsonDocument doc = JsonDocument.Parse(jsonString))
                         {
                             dataElement = doc.RootElement.Clone();
@@ -151,8 +149,7 @@ namespace ASMPTool.BLL
                     }
                     catch (JsonException)
                     {
-                        // 如果 DATA 後面的字串不是合法的 JSON，則保持 data 為空物件
-                        // 可以在此處加入 log 記錄錯誤
+                        // 解析失敗
                     }
                 }
 

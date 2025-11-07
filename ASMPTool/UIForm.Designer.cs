@@ -6,6 +6,9 @@
         ///  Required designer variable.
         /// </summary>
         private System.ComponentModel.IContainer components = null;
+        private ContextMenuStrip contextMenuStrip1;
+        private ToolStripMenuItem restartExplorerMenuItem;
+        private ToolStripMenuItem openDiagramMenuItem;
 
         /// <summary>
         ///  Clean up any resources being used.
@@ -58,6 +61,9 @@
             lbMessageBoxTitle = new Label();
             panel2 = new Panel();
             tBoxScanBarcode = new TextBox();
+            components = new System.ComponentModel.Container();
+            contextMenuStrip1 = new ContextMenuStrip(components);
+            restartExplorerMenuItem = new ToolStripMenuItem();
             tableLayoutPanel1.SuspendLayout();
             tableLayoutPanel2.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)pictureBox1).BeginInit();
@@ -339,6 +345,7 @@
             // dataGridView
             // 
             dataGridView.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            dataGridView.ContextMenuStrip = contextMenuStrip1;
             dataGridView.Dock = DockStyle.Fill;
             dataGridView.Location = new Point(2, 77);
             dataGridView.Margin = new Padding(2);
@@ -475,6 +482,31 @@
             tBoxScanBarcode.TabIndex = 0;
             tBoxScanBarcode.TextAlign = HorizontalAlignment.Center;
             tBoxScanBarcode.KeyPress += tBoxScanBarcode_KeyPress;
+            // 
+            // restartExplorerMenuItem
+            // 
+            restartExplorerMenuItem.Name = "restartExplorerMenuItem";
+            restartExplorerMenuItem.Size = new Size(220, 24);
+            restartExplorerMenuItem.Text = "重啟Windows檔案總管";
+            restartExplorerMenuItem.Click += restartExplorerMenuItem_Click;
+            // 
+            // openDiagramMenuItem
+            // 
+            openDiagramMenuItem = new ToolStripMenuItem();
+            openDiagramMenuItem.Name = "openDiagramMenuItem";
+            openDiagramMenuItem.Size = new Size(220, 24);
+            openDiagramMenuItem.Text = "開啟設備示意圖";
+            openDiagramMenuItem.Click += new System.EventHandler(this.openDiagramMenuItem_Click);
+            // 
+            // contextMenuStrip1
+            // 
+            contextMenuStrip1.ImageScalingSize = new Size(20, 20);
+            contextMenuStrip1.Items.AddRange(new ToolStripItem[] {
+                restartExplorerMenuItem,
+                openDiagramMenuItem
+            });
+            contextMenuStrip1.Name = "contextMenuStrip1";
+            contextMenuStrip1.Size = new Size(221, 28);
             // 
             // UIForm
             // 

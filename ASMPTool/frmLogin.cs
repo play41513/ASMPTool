@@ -59,7 +59,28 @@ namespace ASMPTool
                 switch (e.PropertyName)
                 {
                     case nameof(LoginViewModel.IsConnected):
-                        pictureBoxConnect.Load(_viewModel.IsConnected ? "icon\\connect.png" : "icon\\disconnect.png");
+                        try
+                        {
+                            // 組合相對於執行檔目錄的絕對路徑
+                            string iconName = _viewModel.IsConnected ? "connect.png" : "disconnect.png";
+                            string iconPath = Path.Combine(Application.StartupPath, "icon", iconName);
+
+                            if (File.Exists(iconPath))
+                            {
+                                pictureBoxConnect.Image = Image.FromFile(iconPath);
+                            }
+                            else
+                            {
+                                // 如果找不到檔案，可以顯示預設圖示或不變更
+                                // 這裡我們讓它在找不到 connect.png 時，依然顯示 disconnect
+                                pictureBoxConnect.Image = Properties.Resources.disconnect;
+                            }
+                        }
+                        catch
+                        {
+                            // 發生錯誤時，顯示預設的離線圖示
+                            pictureBoxConnect.Image = Properties.Resources.disconnect;
+                        }
                         break;
 
                     // *** 當任何一個會影響登入按鈕狀態的屬性發生變化時，都重新評估按鈕狀態 ***

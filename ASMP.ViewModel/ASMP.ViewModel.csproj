@@ -18,5 +18,16 @@
     <ProjectReference Include="..\ASMPTool.Commands\ASMPTool.Commands.csproj" />
     <ProjectReference Include="..\ASMPTool.Model\ASMPTool.Model.csproj" />
   </ItemGroup>
+	
+  <ItemGroup>
+    <None Update="icon\**\*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+	
+  <ItemGroup>
+    <Compile Update="Properties\Resources.Designer.cs">
+      </Compile>
+  </ItemGroup>
 
 </Project>

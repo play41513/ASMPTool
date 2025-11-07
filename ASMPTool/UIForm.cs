@@ -8,6 +8,7 @@ using System.Drawing;
 using System.Windows.Forms;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 
 namespace ASMPTool
 {
@@ -160,7 +161,57 @@ namespace ASMPTool
         #endregion
 
         #region UI Event Handlers
+        private void restartExplorerMenuItem_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                // 尋找所有名為 "explorer" 的處理程序
+                Process[] explorerProcesses = Process.GetProcessesByName("explorer");
+                foreach (Process process in explorerProcesses)
+                {
+                    // 強制結束處理程序
+                    process.Kill();
+                }
+                // Windows 通常會自動偵測到 explorer.exe 被關閉並重新啟動它
+                MessageBox.Show(this, "Windows 檔案總管已成功重啟。", "成功", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(this, $"重啟檔案總管時發生錯誤: {ex.Message}", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+        private void openDiagramMenuItem_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                // 從 ViewModel 取得 ProductModel 和 WorkStation 來組合路徑
+                string relativePath = Path.Combine(
+                    "ItemParameter",
+                    _viewModel.ProductModel,
+                    _viewModel.WorkStation,
+                    "EquipmentDiagram.jpg"
+                );
+                string fullPath = Path.Combine(Directory.GetCurrentDirectory(), relativePath);
 
+                if (File.Exists(fullPath))
+                {
+                    // 使用 Process.Start 開啟檔案，並設定 UseShellExecute = true
+                    // 這樣會使用系統預設的圖片檢視器開啟
+                    Process.Start(new ProcessStartInfo(fullPath)
+                    {
+                        UseShellExecute = true
+                    });
+                }
+                else
+                {
+                    MessageBox.Show(this, $"找不到示意圖檔案：\n{fullPath}", "檔案不存在", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(this, $"開啟檔案時發生錯誤：\n{ex.Message}", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
         private void tBoxScanBarcode_KeyPress(object sender, KeyPressEventArgs e)
         {
             if (e.KeyChar == (char)Keys.Enter)
