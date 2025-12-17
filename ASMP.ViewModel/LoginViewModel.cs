@@ -180,7 +180,9 @@ namespace ASMP.ViewModel
         {
             if (string.IsNullOrEmpty(comboBoxName)) return;
 
-            string basePath = Path.Combine(_nasRootPath, "tools", "ASMPTool", "WorkStationFile");
+            string basePath = IsConnected
+                            ? Path.Combine(_nasRootPath, "tools", "ASMPTool", "WorkStationFile")
+                            : Path.Combine(_nasRootPath, "WorkStationFile");
             try
             {
                 if (comboBoxName.Contains("ProductModel"))
