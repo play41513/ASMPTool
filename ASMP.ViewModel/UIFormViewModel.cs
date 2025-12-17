@@ -341,16 +341,29 @@ namespace ASMP.ViewModel
             for (int i = 0; i < _testPlan.Tasks.Count; i++)
             {
                 var task = _testPlan.Tasks[i];
-                if (!task.Enable)
+
+                bool shouldBreakGroup = false;
+
+                if (currentGroup == null)
                 {
-                    if (currentGroup != null) { allGroups.Add(currentGroup); }
-                    currentGroup = [(task, i)];
+                    shouldBreakGroup = true;
                 }
                 else
                 {
-                    if (currentGroup == null) { currentGroup = []; }
-                    currentGroup.Add((task, i));
+                    var lastTask = currentGroup.Last().task;
+
+                    if (lastTask.Enable != task.Enable) shouldBreakGroup = true;
+                    else if (lastTask.Sync != task.Sync) shouldBreakGroup = true;
+                    else if (task.Enable && task.Sync) shouldBreakGroup = true;
                 }
+
+                if (shouldBreakGroup)
+                {
+                    if (currentGroup != null) allGroups.Add(currentGroup);
+                    currentGroup = new List<(ItemTask task, int index)>();
+                }
+
+                currentGroup.Add((task, i));
             }
             if (currentGroup != null && currentGroup.Any()) { allGroups.Add(currentGroup); }
 
