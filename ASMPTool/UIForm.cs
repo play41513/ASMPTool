@@ -58,6 +58,12 @@ namespace ASMPTool
             _viewModel.PropertyChanged += ViewModel_PropertyChanged;
             _viewModel.LogMessageAppended += OnLogMessageAppended;
             _viewModel.ShowMttSelectionDialogRequested += OnShowMttSelectionDialogRequested;
+
+            _viewModel.ConfirmRetryRequested += (message) =>
+            {
+                var result = MessageBox.Show(message, "­«´ú½T»{", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+                return result == DialogResult.Yes;
+            };
         }
 
         #region ViewModel Event Handlers

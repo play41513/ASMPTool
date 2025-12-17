@@ -16,6 +16,12 @@ namespace ASMP.ViewModel
         public INIFileModel ModifiedTestPlan { get; set; } = new INIFileModel();
         public int LoopCount { get; set; } = 1;
     }
+    // 用於控制流程跳轉的例外
+    public class RetryException : Exception
+    {
+        public int TargetIndex { get; }
+        public RetryException(int targetIndex) { TargetIndex = targetIndex; }
+    }
     public class UIFormViewModel : ViewModelBase
     {
         #region Private Fields
@@ -90,6 +96,8 @@ namespace ASMP.ViewModel
         public event Action<string>? ShowMessageRequested;
         public event Action<LogDisplayInfo>? LogMessageAppended;
         public event Func<List<Tuple<string, int>>, INIFileModel, MttSettings?>? ShowMttSelectionDialogRequested;
+        // 詢問使用者是否重測 (回傳 true 表示重測)
+        public event Func<string, bool>? ConfirmRetryRequested;
 
         #endregion
 
@@ -347,73 +355,155 @@ namespace ASMP.ViewModel
             if (currentGroup != null && currentGroup.Any()) { allGroups.Add(currentGroup); }
 
             var parallelExecutionList = new List<List<(ItemTask task, int index)>>();
+            int minTaskIndexToRun = -1;
+        ReExecuteLabel:
 
-            foreach (var group in allGroups)
+            for (int i = 0; i < allGroups.Count; i++)
             {
-                if (group.Count <= 1 && !group.First().task.Enable)
-                {
-                    continue;
-                }
-                if (!group.First().task.Enable && !group.Skip(1).Any(t => t.task.Enable))
-                {
-                    continue;
-                }
-                bool isSyncGroup = group.First().task.Sync;
+                var group = allGroups[i];
 
-                if (isSyncGroup)
+                if (group.Count <= 1 && !group.First().task.Enable) continue;
+                if (!group.First().task.Enable && !group.Skip(1).Any(t => t.task.Enable)) continue;
+
+                try
                 {
-                    parallelExecutionList.Add(group);
-                }
-                else // 遇到循序組
-                {
-                    // 步驟 1: 處理之前收集的所有並行任務
-                    if (parallelExecutionList.Any())
+                    bool isSyncGroup = group.First().task.Sync;
+
+                    if (isSyncGroup)
                     {
-                        var parallelTasks = new List<Task<bool>>();
-                        bool isFirstParallelGroup = true; // 標記是否為第一個並行組
-
-                        foreach (var parallelGroup in parallelExecutionList)
+                        parallelExecutionList.Add(group);
+                    }
+                    else // 遇到循序組
+                    {
+                        // 步驟 1: 處理之前收集的所有並行任務
+                        if (parallelExecutionList.Any())
                         {
-                            // 只有第一個並行組，才會被授予捲動權限 (canRequestScroll: true)
-                            parallelTasks.Add(ExecuteSingleGroupAsync(parallelGroup, testResult, logBuilder, canRequestScroll: isFirstParallelGroup));
-                            isFirstParallelGroup = false; // 後續的組都設為 false
+                            var parallelTasks = new List<Task<bool>>();
+                            bool isFirstParallelGroup = true;
+
+                            foreach (var parallelGroup in parallelExecutionList)
+                            {
+                                parallelTasks.Add(ExecuteSingleGroupAsync(parallelGroup, testResult, logBuilder, canRequestScroll: isFirstParallelGroup, minTaskIndexToRun));
+                                isFirstParallelGroup = false;
+                            }
+
+                            bool[] results = await Task.WhenAll(parallelTasks);
+                            parallelExecutionList.Clear();
+                            if (results.Any(r => !r)) return false; 
                         }
 
-                        bool[] results = await Task.WhenAll(parallelTasks);
-                        parallelExecutionList.Clear();
-                        if (results.Any(r => !r)) return false;
+                        // 步驟 2: 處理當前的循序任務
+                        bool sequentialResult = await ExecuteSingleGroupAsync(group, testResult, logBuilder, canRequestScroll: true, minTaskIndexToRun);
+                        if (!sequentialResult) return false;
+                    }
+                }
+                catch (RetryException ex)
+                {
+                    // 捕捉重測例外
+                    int targetTaskIndex = ex.TargetIndex;
+
+                    minTaskIndexToRun = targetTaskIndex;
+                    // 1. 清除 UI 狀態 (從 Target 到 Current 的所有步驟)
+                    int currentMaxIndex = group.Max(t => t.index);
+
+                    _uiSyncContext.Post(_ =>
+                    {
+                        for (int k = targetTaskIndex; k <= currentMaxIndex; k++)
+                        {
+                            if (k < TestSteps.Count)
+                            {
+                                TestSteps[k].Result = "";
+                                TestSteps[k].SpendTime = "";
+                                TestSteps[k].Detail = "";
+                            }
+                        }
+                    }, null);
+
+                    // 2. 清除 TestResultModel 中的紀錄 (移除重測範圍內的結果)
+                    // 這裡簡單地移除所有在 TargetIndex 之後(含)產生的結果
+                    // 注意：StepResults 是按照執行順序加入的，我們需要移除那些對應於被重置任務的結果
+                    // 比較好的做法是倒序移除
+                    for (int r = testResult.StepResults.Count - 1; r >= 0; r--)
+                    {
+                        // 由於 StepResults 裡沒有存 Index，我們用名稱或推斷。
+                        // 但為了精確，我們假設如果發生 Retry，就清除所有該次重測範圍內的 Log。
+                        // 簡單起見，移除最後一筆(剛剛失敗的那筆)以及前面的相關紀錄比較複雜。
+                        // 策略：移除所有 StepResult 中，其對應 Task Index >= targetTaskIndex 的項目。
+                        // 我們需要知道 StepResult 對應哪個 Task Index，這需要修改 StepResult 或用名稱比對。
+                        // 這裡採用名稱比對：
+                        var resultItemName = testResult.StepResults[r].TestItemName;
+                        var taskIndex = _testPlan.Tasks.FindIndex(t => t.Name == resultItemName);
+                        if (taskIndex >= targetTaskIndex)
+                        {
+                            testResult.StepResults.RemoveAt(r);
+                        }
                     }
 
-                    // 步驟 2: 處理當前的循序任務
-                    // 循序任務組，永遠擁有捲動權限
-                    bool sequentialResult = await ExecuteSingleGroupAsync(group, testResult, logBuilder, canRequestScroll: true);
-                    if (!sequentialResult) return false;
+                    // 3. 清除並行清單，避免狀態殘留
+                    parallelExecutionList.Clear();
+                    // 4.重置 i
+                    i = -1;
+                    continue;
                 }
             }
 
             if (parallelExecutionList.Any())
             {
-                var parallelTasks = new List<Task<bool>>();
-                bool isFirstParallelGroup = true;
-
-                foreach (var parallelGroup in parallelExecutionList)
+                try
                 {
-                    // 只有第一個並行組被授予捲動權限 
-                    parallelTasks.Add(ExecuteSingleGroupAsync(parallelGroup, testResult, logBuilder, canRequestScroll: isFirstParallelGroup));
-                    isFirstParallelGroup = false;
-                }
+                    var parallelTasks = new List<Task<bool>>();
+                    bool isFirstParallelGroup = true;
 
-                bool[] results = await Task.WhenAll(parallelTasks);
-                if (results.Any(r => !r)) return false;
+                    foreach (var parallelGroup in parallelExecutionList)
+                    {
+                        parallelTasks.Add(ExecuteSingleGroupAsync(parallelGroup, testResult, logBuilder, canRequestScroll: isFirstParallelGroup, minTaskIndexToRun));
+                        isFirstParallelGroup = false;
+                    }
+
+                    bool[] results = await Task.WhenAll(parallelTasks);
+                    if (results.Any(r => !r)) return false;
+                }
+                catch (RetryException ex)
+                {
+                    int targetTaskIndex = ex.TargetIndex;
+                    minTaskIndexToRun = targetTaskIndex; // 設定過濾條件
+
+                    // 1. 清除 UI (清除從目標到最後的所有項目)
+                    _uiSyncContext.Post(_ =>
+                    {
+                        for (int k = targetTaskIndex; k < TestSteps.Count; k++)
+                        {
+                            TestSteps[k].Result = "";
+                            TestSteps[k].SpendTime = "";
+                            TestSteps[k].Detail = "";
+                        }
+                    }, null);
+
+                    // 2. 清除 Result Model
+                    for (int r = testResult.StepResults.Count - 1; r >= 0; r--)
+                    {
+                        var resultItemName = testResult.StepResults[r].TestItemName;
+                        var taskIndex = _testPlan.Tasks.FindIndex(t => t.Name == resultItemName);
+                        if (taskIndex >= targetTaskIndex) testResult.StepResults.RemoveAt(r);
+                    }
+
+                    // 3. 清除並行暫存
+                    parallelExecutionList.Clear();
+                    goto ReExecuteLabel;
+                }
             }
 
             return true;
         }
 
-        private async Task<bool> ExecuteSingleGroupAsync(List<(ItemTask task, int index)> group, TestResultModel testResult, StringBuilder logBuilder, bool canRequestScroll)
+        private async Task<bool> ExecuteSingleGroupAsync(List<(ItemTask task, int index)> group, TestResultModel testResult, StringBuilder logBuilder, bool canRequestScroll, int minTaskIndex = -1)
         {
             foreach (var (task, index) in group)
             {
+                if (minTaskIndex != -1 && index < minTaskIndex)
+                {
+                    continue;
+                }
                 if (!task.Enable) continue;
 
                 var correspondingStepVM = TestSteps[index];
@@ -513,6 +603,30 @@ namespace ASMP.ViewModel
                                 //不判定PASS FAIL ，不傳入 ownerHwnd
                                 DLLManagerBLL.ExecuteSpecificPlugin(ngTask.FunctionTestType, ngTask.FunctionTestPath, out _, IntPtr.Zero, testResult);
                             }
+                        }
+                    }
+                    // 檢查是否需要重測
+                    if (task.RetryTarget > 0)
+                    {
+                        // 確保不在 UI 執行緒阻塞，使用 Invoke 呼叫 UI 層顯示對話框
+                        bool userWantsRetry = false;
+
+                        // 透過事件詢問 View
+                        if (ConfirmRetryRequested != null)
+                        {
+                            string message = $"項目 [{task.Name}] 失敗 \n" +
+                             $"設定要求跳回項目 {task.RetryTarget} 重測\n\n" +
+                             $"是否執行重測？\n" +
+                             $"(是: 重測 / 否: 失敗)"+
+                             $"\n\n\nItem [{task.Name}] Failed.\nRetry requested from item {task.RetryTarget}.\n\nDo you want to retry?\n(Y: Retry / N: FAIL)";
+
+                            userWantsRetry = ConfirmRetryRequested.Invoke(message);
+                        }
+
+                        if (userWantsRetry)
+                        {
+                            // 拋出例外，攜帶目標索引 (轉換為 0-based)
+                            throw new RetryException(task.RetryTarget - 1);
                         }
                     }
                     return false;

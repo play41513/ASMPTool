@@ -11,6 +11,7 @@ namespace ASMPTool.Model
         public string FunctionTestPath { get; set; } = string.Empty;
         public List<int> NGTest { get; set; } = new();
 
+        public int RetryTarget { get; set; } = 0;
         public ItemTask Clone()
         {
             return new ItemTask
