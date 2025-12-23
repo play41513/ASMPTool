@@ -6,6 +6,7 @@
         /// Required designer variable.
         /// </summary>
         private System.ComponentModel.IContainer components = null;
+        private System.Windows.Forms.Button btnUncheckAll;
 
         /// <summary>
         /// Clean up any resources being used.
@@ -28,6 +29,7 @@
         /// </summary>
         private void InitializeComponent()
         {
+            btnUncheckAll = new System.Windows.Forms.Button();
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(frmMttSelection));
             btnConfirm = new Button();
             checkedListBoxItems = new CheckedListBox();
@@ -52,6 +54,16 @@
             btnConfirm.Text = "確定 Confirm";
             btnConfirm.UseVisualStyleBackColor = true;
             btnConfirm.Click += btnConfirm_Click;
+            // 
+            // btnUncheckAll
+            // 
+            this.btnUncheckAll.Location = new System.Drawing.Point(160, 5); // 放在 Label 旁邊
+            this.btnUncheckAll.Name = "btnUncheckAll";
+            this.btnUncheckAll.Size = new System.Drawing.Size(120, 32);
+            this.btnUncheckAll.TabIndex = 9;
+            this.btnUncheckAll.Text = "全部取消";
+            this.btnUncheckAll.UseVisualStyleBackColor = true;
+            this.btnUncheckAll.Click += new System.EventHandler(this.btnUncheckAll_Click); // 綁定 Click 事件
             // 
             // checkedListBoxItems
             // 
@@ -151,6 +163,7 @@
             Controls.Add(btnCancel);
             Controls.Add(checkedListBoxItems);
             Controls.Add(btnConfirm);
+            Controls.Add(btnUncheckAll);
             MaximizeBox = false;
             MinimizeBox = false;
             Name = "frmMttSelection";

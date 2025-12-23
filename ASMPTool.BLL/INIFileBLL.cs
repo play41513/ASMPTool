@@ -1,5 +1,7 @@
 ﻿
 using ASMPTool.DAL;
+using System.Text;
+using System.IO;
 using ASMPTool.Model;
 using System.Collections.Generic;
 
@@ -57,34 +59,40 @@ namespace ASMPTool.BLL
         }
         public static void SaveToIni(INIFileModel model, string filePath)
         {
-            // 如果檔案存在，先刪除，以確保是全新的寫入
-            if (File.Exists(filePath))
-            {
-                File.Delete(filePath);
-            }
+            StringBuilder sb = new();
 
             for (int i = 0; i < model.Tasks.Count; i++)
             {
-                string section = $"item{i + 1}";
                 var task = model.Tasks[i];
+                string sectionName = $"item{i + 1}";
 
-                INIFileDAL.WriteString(filePath, section, "ItemName", task.Name);
-                INIFileDAL.WriteString(filePath, section, "Enable", task.Enable ? "1" : "0");
-                INIFileDAL.WriteString(filePath, section, "Sync", task.Sync ? "1" : "0");
-                INIFileDAL.WriteString(filePath, section, "FunctionEnable", task.FunctionTest ? "1" : "0");
-                INIFileDAL.WriteString(filePath, section, "FunctionType", task.FunctionTestType);
-                INIFileDAL.WriteString(filePath, section, "FunctionIniPath", task.FunctionTestPath);
+                // 1. 手動寫入 Section (注意要加中括號)
+                sb.AppendLine($"[{sectionName}]");
+
+                // 2. 手動寫入 Key=Value
+                sb.AppendLine($"ItemName={task.Name}");
+                sb.AppendLine($"Enable={(task.Enable ? "1" : "0")}");
+                sb.AppendLine($"Sync={(task.Sync ? "1" : "0")}");
+                sb.AppendLine($"FunctionEnable={(task.FunctionTest ? "1" : "0")}");
+                sb.AppendLine($"FunctionType={task.FunctionTestType}");
+                sb.AppendLine($"FunctionIniPath={task.FunctionTestPath}");
 
                 if (task.RetryTarget > 0)
                 {
-                    INIFileDAL.WriteString(filePath, section, "RetryTarget", task.RetryTarget.ToString());
+                    sb.AppendLine($"RetryTarget={task.RetryTarget}");
                 }
 
                 for (int j = 0; j < task.NGTest.Count; j++)
                 {
-                    INIFileDAL.WriteString(filePath, section, $"NGItem{j + 1}", task.NGTest[j].ToString());
+                    sb.AppendLine($"NGItem{j + 1}={task.NGTest[j]}");
                 }
+
+                // 每個 Section 之間空一行，方便閱讀
+                sb.AppendLine();
             }
+
+            // --- 寫入檔案 ---
+            File.WriteAllText(filePath, sb.ToString(), Encoding.UTF8);
         }
         private List<int> GetNGTests(string section)
         {

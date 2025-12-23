@@ -168,7 +168,21 @@ namespace ASMP.ViewModel
             // 2. 執行業務邏輯
             if (IsConnected)
             {
-                HandleNASOperations(Path.Combine(_nasRootPath, "tools", "ASMPTool"), loginInfo);
+
+                string nasToolPath = Path.Combine(_nasRootPath, "tools", "ASMPTool");
+
+                string nasVersionFilePath = Path.Combine(nasToolPath, "WorkStationFile", ProductModel, WorkStation, Version);
+
+                // 只有當 NAS 上「真的存在」這個版本檔案時，才去執行 HandleNASOperations
+                // 如果 NAS 上沒這個檔 (代表是本地版本)，就跳過下載
+                if (File.Exists(nasVersionFilePath))
+                {
+                    HandleNASOperations(nasToolPath, loginInfo);
+                }
+                else
+                {
+                    Console.WriteLine($"版本 {Version} 僅存在於本地，跳過 NAS 同步。");
+                }
             }
             SaveRecordFile();
 
@@ -214,13 +228,36 @@ namespace ASMP.ViewModel
                 }
                 else if (comboBoxName.Contains("Version"))
                 {
-                    string stationPath = Path.Combine(basePath, ProductModel, WorkStation);
-                    if (string.IsNullOrEmpty(WorkStation) || !Directory.Exists(stationPath)) return;
-                    var items = Directory.GetFiles(stationPath).Select(Path.GetFileName).Where(s => s != null).Cast<string>();
+                    var versionSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+                    if (IsConnected)
+                    {
+                        string nasStationPath = Path.Combine(_nasRootPath, "tools", "ASMPTool", "WorkStationFile", ProductModel, WorkStation);
+                        if (Directory.Exists(nasStationPath))
+                        {
+                            var nasFiles = Directory.GetFiles(nasStationPath)
+                                                    .Select(Path.GetFileName)
+                                                    .Where(s => !string.IsNullOrEmpty(s))
+                                                    .Cast<string>();
+
+                            foreach (var f in nasFiles) versionSet.Add(f);
+                        }
+                    }
+                    string localStationPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "WorkStationFile", ProductModel, WorkStation);
+                    if (Directory.Exists(localStationPath))
+                    {
+                        var localFiles = Directory.GetFiles(localStationPath)
+                                                  .Select(Path.GetFileName)
+                                                  .Where(s => !string.IsNullOrEmpty(s))
+                                                  .Cast<string>();
+
+                        foreach (var f in localFiles) versionSet.Add(f);
+                    }
 
                     _allVersions.Clear();
                     Versions.Clear();
-                    foreach (var item in items)
+
+                    foreach (var item in versionSet.OrderByDescending(v => v))
                     {
                         _allVersions.Add(item);
                         Versions.Add(item);

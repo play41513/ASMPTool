@@ -12,6 +12,7 @@ namespace ASMPTool.BLL
 {
     public class LoggingBLL
     {
+        private const string PendingFolderName = "Pending";
         /// <summary>
         /// 儲存測試日誌，包含本地儲存和NAS儲存。
         /// </summary>
@@ -27,7 +28,10 @@ namespace ASMPTool.BLL
 
             string date = DateTime.Now.ToString("yyMMdd_HHmmss_fff");
             string localLogFolder = @"C:\log";
+            string pendingLogFolder = Path.Combine(localLogFolder, PendingFolderName);
+
             Directory.CreateDirectory(localLogFolder);
+            Directory.CreateDirectory(pendingLogFolder);
 
 
             // --- 組合 Log 字串 ---
@@ -40,26 +44,54 @@ namespace ASMPTool.BLL
                 // 現在可以直接判斷 jsonLogString 是否包含 "FAIL" 或 "ERROR"
                 finalResult = (jsonLogString.Contains("\"Result\": \"FAIL\"") || jsonLogString.Contains("\"Result\": \"ERROR\"")) ? "FAIL" : "PASS";
             }
+            string fileName = $"{date}_[{testResult.ScanBarcodeNumber}][Result_{finalResult}].csv";
+            string localCsvPath = Path.Combine(localLogFolder, fileName);
+            string pendingCsvPath = Path.Combine(pendingLogFolder, fileName);
 
-            // --- 寫入本地 ---
+            // 準備 CSV 內容
             string[] headers = ["ProductName", "EmployeeID", "Version", "Barcode", "UnitNumber", "Date", "Result", "ErrorCode", "WorkOrder", "SN", "MAC1", "MAC2", "MAC3", "LOG"];
-            string csvPath = Path.Combine(localLogFolder, $"{date}_[{testResult.ScanBarcodeNumber}][Result_{finalResult}].csv");
-            // 建立一個符合 CSV 規範的安全字串，可以放在LOG欄位裡
             string csvSafeLogString = $"\"{jsonLogString.Replace("\"", "\"\"")}\"";
-            using (StreamWriter writer = new(csvPath))
-            {
-                writer.WriteLine(string.Join(",", headers));
-                writer.WriteLine($"{loginInfo.ProductModel},{loginInfo.EmployeeID}," +
+            string csvContentLine = $"{loginInfo.ProductModel},{loginInfo.EmployeeID}," +
                                  $"{loginInfo.Version},{testResult.ScanBarcodeNumber}," +
                                  $"{testResult.UnitNumber},{date}," +
                                  $"{finalResult},{testResult.ErrorCode}," +
                                  $"{loginInfo.WorkOrder},{testResult.SerialNumber}," +
                                  $"{testResult.MACNumber1},{testResult.MACNumber2}," +
-                                 $"{testResult.MACNumber3},{csvSafeLogString}");
+                                 $"{testResult.MACNumber3},{csvSafeLogString}";
+
+            try
+            {
+                // 1. 寫入本地 Log (C:\log)
+                using (StreamWriter writer = new(localCsvPath))
+                {
+                    writer.WriteLine(string.Join(",", headers));
+                    writer.WriteLine(csvContentLine);
+                }
+
+                // 2. 寫入暫存 Log (C:\log\Pending) - 作為斷網續傳的備份
+                File.Copy(localCsvPath, pendingCsvPath, true);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"寫入本地檔案失敗: {ex.Message}");
+                return false; // 如果連本地都寫不進去，真的失敗
             }
 
-            // --- 寫入 NAS  ---
-            return WriteToNas(loginInfo, testResult, finalResult, csvSafeLogString, date);
+            // 3. 嘗試寫入 NAS
+            bool nasSuccess = WriteToNas(loginInfo, testResult, finalResult, csvSafeLogString, date);
+
+            if (nasSuccess)
+            {
+                // 如果 NAS 寫入成功，刪除 Pending 中的暫存檔
+                try { File.Delete(pendingCsvPath); } catch { }
+            }
+            else
+            {
+                Console.WriteLine("NAS 寫入失敗，檔案已保留在 Pending 資料夾等待重傳。");
+            }
+
+            // 有斷網續傳機制，只要本地寫入成功，就視為成功 (避免跳出警告視窗干擾產線)
+            return true;
         }
 
         /// <summary>
@@ -177,6 +209,66 @@ namespace ASMPTool.BLL
 
             // 將整個列表序列化成一個 JSON 陣列字串
             return JsonSerializer.Serialize(logEntries, options);
+        }
+
+        /// <summary>
+        /// 檢查並上傳 Pending 資料夾中的 Log (供背景執行緒呼叫)
+        /// </summary>
+        public static void UploadPendingLogs(LoginInfoModel currentLoginInfo)
+        {
+            string pendingLogFolder = @"C:\log\Pending";
+            if (!Directory.Exists(pendingLogFolder)) return;
+
+            var files = Directory.GetFiles(pendingLogFolder, "*.csv");
+            if (files.Length == 0) return;
+
+            // 簡單檢查一下 NAS 是否連通，避免無謂的嘗試
+            if (!NasConnectionDAL.CheckLogPathConnection(currentLoginInfo.NAS_IP_Address)) return;
+
+            foreach (var file in files)
+            {
+                try
+                {
+                    // 讀取 CSV 以獲取正確的資料夾路徑資訊 (ProductModel, WorkOrder)
+                    // 讀取第二行資料
+                    string[] lines = File.ReadAllLines(file);
+                    if (lines.Length < 2)
+                    {
+                        File.Delete(file); // 檔案損毀，刪除
+                        continue;
+                    }
+
+                    // 解析 CSV 資料行
+                    var columns = lines[1].Split(',');
+                    if (columns.Length < 9) continue;
+
+                    string productModel = columns[0];
+                    string workOrder = columns[8];
+                    string workStation = currentLoginInfo.WorkStation;
+
+                    // 組合 NAS 路徑
+                    string nasFolder = Path.Combine(currentLoginInfo.NAS_IP_Address, productModel, workStation, workOrder);
+                    if (!Directory.Exists(nasFolder))
+                    {
+                        Directory.CreateDirectory(nasFolder);
+                    }
+
+                    string fileName = Path.GetFileName(file);
+                    string destPath = Path.Combine(nasFolder, fileName);
+
+                    // 複製檔案到 NAS
+                    File.Copy(file, destPath, true);
+
+                    // 上傳成功後刪除本地暫存
+                    File.Delete(file);
+                    Console.WriteLine($"背景上傳成功: {fileName}");
+                }
+                catch (Exception ex)
+                {
+                    // 上傳失敗則跳過，留待下次嘗試
+                    Console.WriteLine($"背景上傳失敗 ({Path.GetFileName(file)}): {ex.Message}");
+                }
+            }
         }
     }
 }

@@ -34,6 +34,35 @@ namespace ASMPTool
             this.checkedListBoxItems.SelectedIndexChanged += new System.EventHandler(this.checkedListBoxItems_SelectedIndexChanged);
             this.checkedListBoxSubItems.ItemCheck += new System.Windows.Forms.ItemCheckEventHandler(this.checkedListBoxSubItems_ItemCheck);
         }
+        private void btnUncheckAll_Click(object sender, EventArgs e)
+        {
+            // 1. 開啟旗標，暫停 ItemCheck 的觸發邏輯，避免畫面閃爍
+            _isUpdatingFromCode = true;
+
+            try
+            {
+                // 2. 清除左側主列表的所有勾選
+                for (int i = 0; i < checkedListBoxItems.Items.Count; i++)
+                {
+                    checkedListBoxItems.SetItemChecked(i, false);
+                }
+
+                // 3. 將 Model 中「所有任務」都設為停用
+                foreach (var task in ModifiedTestPlan.Tasks)
+                {
+                    task.Enable = false;
+                }
+
+                // 4. 清空並禁用右側子列表 (因為左邊都取消了，右邊自然沒東西)
+                checkedListBoxSubItems.Items.Clear();
+                checkedListBoxSubItems.Enabled = false;
+            }
+            finally
+            {
+                // 5. 確保旗標關閉，恢復正常運作
+                _isUpdatingFromCode = false;
+            }
+        }
         private void PopulateMainList()
         {
             _isUpdatingFromCode = true;
