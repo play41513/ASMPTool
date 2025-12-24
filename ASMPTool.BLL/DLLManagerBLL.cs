@@ -11,9 +11,9 @@ namespace ASMPTool.BLL
 {
     public class DLLManagerBLL
     {
-        public static bool ExecuteSpecificPlugin(string dllFile, string iniPath, out string msg, IntPtr ownerHwnd, TestResultModel testResult)
+        public static bool ExecuteSpecificPlugin(string dllFile, string iniPath, out string msg, IntPtr ownerHwnd, TestResultModel testResult, bool isRetry = false)
         {
-            string result = IDLLManagerDAL.ExecuteSpecificPlugin(dllFile, iniPath, ownerHwnd);
+            string result = IDLLManagerDAL.ExecuteSpecificPlugin(dllFile, iniPath, ownerHwnd, isRetry);
             msg = result;
 
             StringAnalysis(result, testResult);

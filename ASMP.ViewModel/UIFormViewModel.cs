@@ -577,12 +577,14 @@ namespace ASMP.ViewModel
                     }
                     else
                     {
+                        bool isRetry = (minTaskIndex != -1);
                         return DLLManagerBLL.ExecuteSpecificPlugin(
                             task.FunctionTestType,
                             task.FunctionTestPath,
                             out stepDetail,
                             _ownerHandle,
-                            testResult
+                            testResult,
+                            isRetry
                         );
                     }
                 });
@@ -634,7 +636,7 @@ namespace ASMP.ViewModel
                             else
                             {
                                 //不判定PASS FAIL ，不傳入 ownerHwnd
-                                DLLManagerBLL.ExecuteSpecificPlugin(ngTask.FunctionTestType, ngTask.FunctionTestPath, out _, IntPtr.Zero, testResult);
+                                DLLManagerBLL.ExecuteSpecificPlugin(ngTask.FunctionTestType, ngTask.FunctionTestPath, out _, IntPtr.Zero, testResult, false);
                             }
                         }
                     }

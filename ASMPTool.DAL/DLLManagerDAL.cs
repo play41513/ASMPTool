@@ -30,6 +30,11 @@ namespace ASMPTool.DAL
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         [return: MarshalAs(UnmanagedType.BStr)]
         delegate string MacroTestDelegate(IntPtr ownerHwnd, [MarshalAs(UnmanagedType.LPStr)] string iniPath);
+        // 新增針對 PLCControlDLL 的 3 參數 Delegate
+        // 假設第三個參數是 string，如果是 int 請改為 int 並且移除 MarshalAs
+        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        [return: MarshalAs(UnmanagedType.BStr)]
+        delegate string MacroTestDelegate3Param(IntPtr ownerHwnd, [MarshalAs(UnmanagedType.LPStr)] string iniPath, bool Retry);
 
         [DllImport("user32.dll", CharSet = CharSet.Auto)]
         private static extern int PostMessage(IntPtr hWnd, int msg, IntPtr wParam, IntPtr lParam);
@@ -44,11 +49,11 @@ namespace ASMPTool.DAL
         private static readonly ConcurrentDictionary<string, IntPtr> _nativeDllHandles = new();
         private static readonly ConcurrentDictionary<string, IAutomationPlugin> _netPluginInstances = new();
 
-        private static readonly ConcurrentDictionary<string, MacroTestDelegate> _delegateCache = new();
+        private static readonly ConcurrentDictionary<string, Delegate> _delegateCache = new();
 
         private static readonly ConcurrentDictionary<string, object> _libraryLoadLocks = new();
 
-        public static string ExecuteSpecificPlugin(string dllFile, string iniPath, IntPtr ownerHwnd)
+        public static string ExecuteSpecificPlugin(string dllFile, string iniPath, IntPtr ownerHwnd,bool retry = false)
         {
             if (IsNetAssembly(dllFile))
             {
@@ -56,7 +61,7 @@ namespace ASMPTool.DAL
             }
             else
             {
-                return ExecuteNativePluginInternal(dllFile, iniPath, ownerHwnd);
+                return ExecuteNativePluginInternal(dllFile, iniPath, ownerHwnd,retry);
             }
         }
 
@@ -98,10 +103,10 @@ namespace ASMPTool.DAL
                 }
             }
         }
-        private static string ExecuteNativePluginInternal(string dllFile, string iniPath, IntPtr ownerHwnd)
+        private static string ExecuteNativePluginInternal(string dllFile, string iniPath, IntPtr ownerHwnd, bool retry)
         {
             // 1. 嘗試從快取中直接取得 Delegate
-            if (!_delegateCache.TryGetValue(dllFile, out MacroTestDelegate macroTest))
+            if (!_delegateCache.TryGetValue(dllFile, out Delegate macroTestAny))
             {
                 // 2. 如果快取中沒有，才進入準備階段
                 object loadLock = _libraryLoadLocks.GetOrAdd(dllFile, _ => new object());
@@ -110,7 +115,7 @@ namespace ASMPTool.DAL
                 lock (loadLock)
                 {
                     // 4. 雙重檢查，可能在等待鎖的期間，別的執行緒已經完成了載入
-                    if (!_delegateCache.TryGetValue(dllFile, out macroTest))
+                    if (!_delegateCache.TryGetValue(dllFile, out macroTestAny))
                     {
                         if (!_nativeDllHandles.TryGetValue(dllFile, out IntPtr dllHandle))
                         {
@@ -130,18 +135,33 @@ namespace ASMPTool.DAL
                             return $"LOG:ERROR_LOAD_LIBRARY_GET_PROC_ADDRESS_{errorCode}#";
                         }
 
-                        // 建立 Delegate 並存入快取
-                        macroTest = Marshal.GetDelegateForFunctionPointer<MacroTestDelegate>(macroTestPtr);
+                        Delegate macroTest;
+                        if (dllFile.EndsWith("PLCControlDLL.dll", StringComparison.OrdinalIgnoreCase))
+                        {
+                            macroTest = Marshal.GetDelegateForFunctionPointer<MacroTestDelegate3Param>(macroTestPtr);
+                        }
+                        else
+                        {
+                            macroTest = Marshal.GetDelegateForFunctionPointer<MacroTestDelegate>(macroTestPtr);
+                        }
                         _delegateCache.TryAdd(dllFile, macroTest);
+                        macroTestAny = macroTest;
                     }
                 }
             } 
             // 5. 在鎖的外面執行函式呼叫，允許多個執行緒同時呼叫 C++ DLL
             try
             {
-                // 在鎖的外面執行函式呼叫
-                string result = macroTest(ownerHwnd, iniPath);
-                return result;
+                // 根據 Delegate 類型進行轉型與呼叫
+                if (macroTestAny is MacroTestDelegate3Param method3)
+                {
+                    return method3(ownerHwnd, iniPath, retry);
+                }
+                else if (macroTestAny is MacroTestDelegate method2)
+                {
+                    return method2(ownerHwnd, iniPath);
+                }
+                return "LOG:ERROR_UNKNOWN_DELEGATE_TYPE#";
             }
             finally
             {
