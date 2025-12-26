@@ -29,8 +29,8 @@
         /// </summary>
         private void InitializeComponent()
         {
-            btnUncheckAll = new System.Windows.Forms.Button();
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(frmMttSelection));
+            btnUncheckAll = new Button();
             btnConfirm = new Button();
             checkedListBoxItems = new CheckedListBox();
             btnCancel = new Button();
@@ -41,29 +41,31 @@
             label2 = new Label();
             picSave = new PictureBox();
             saveFileDialog = new SaveFileDialog();
+            btnExportCsv = new Button();
+            btnImportCsv = new Button();
             ((System.ComponentModel.ISupportInitialize)numLoopCount).BeginInit();
             ((System.ComponentModel.ISupportInitialize)picSave).BeginInit();
             SuspendLayout();
             // 
+            // btnUncheckAll
+            // 
+            btnUncheckAll.Location = new Point(160, 5);
+            btnUncheckAll.Name = "btnUncheckAll";
+            btnUncheckAll.Size = new Size(120, 32);
+            btnUncheckAll.TabIndex = 9;
+            btnUncheckAll.Text = "全部取消";
+            btnUncheckAll.UseVisualStyleBackColor = true;
+            btnUncheckAll.Click += btnUncheckAll_Click;
+            // 
             // btnConfirm
             // 
-            btnConfirm.Location = new Point(429, 460);
+            btnConfirm.Location = new Point(429, 482);
             btnConfirm.Name = "btnConfirm";
             btnConfirm.Size = new Size(208, 43);
             btnConfirm.TabIndex = 0;
             btnConfirm.Text = "確定 Confirm";
             btnConfirm.UseVisualStyleBackColor = true;
             btnConfirm.Click += btnConfirm_Click;
-            // 
-            // btnUncheckAll
-            // 
-            this.btnUncheckAll.Location = new System.Drawing.Point(160, 5); // 放在 Label 旁邊
-            this.btnUncheckAll.Name = "btnUncheckAll";
-            this.btnUncheckAll.Size = new System.Drawing.Size(120, 32);
-            this.btnUncheckAll.TabIndex = 9;
-            this.btnUncheckAll.Text = "全部取消";
-            this.btnUncheckAll.UseVisualStyleBackColor = true;
-            this.btnUncheckAll.Click += new System.EventHandler(this.btnUncheckAll_Click); // 綁定 Click 事件
             // 
             // checkedListBoxItems
             // 
@@ -78,7 +80,7 @@
             // 
             // btnCancel
             // 
-            btnCancel.Location = new Point(643, 460);
+            btnCancel.Location = new Point(643, 482);
             btnCancel.Name = "btnCancel";
             btnCancel.Size = new Size(191, 43);
             btnCancel.TabIndex = 2;
@@ -90,7 +92,7 @@
             // 
             chkLoopTest.AutoSize = true;
             chkLoopTest.Font = new Font("Microsoft JhengHei UI", 16F);
-            chkLoopTest.Location = new Point(3, 462);
+            chkLoopTest.Location = new Point(3, 485);
             chkLoopTest.Name = "chkLoopTest";
             chkLoopTest.Size = new Size(269, 39);
             chkLoopTest.TabIndex = 3;
@@ -101,7 +103,7 @@
             // numLoopCount
             // 
             numLoopCount.Font = new Font("Microsoft JhengHei UI", 16F);
-            numLoopCount.Location = new Point(273, 461);
+            numLoopCount.Location = new Point(273, 482);
             numLoopCount.Name = "numLoopCount";
             numLoopCount.Size = new Size(148, 41);
             numLoopCount.TabIndex = 4;
@@ -123,7 +125,7 @@
             checkedListBoxSubItems.FormattingEnabled = true;
             checkedListBoxSubItems.Location = new Point(428, 49);
             checkedListBoxSubItems.Name = "checkedListBoxSubItems";
-            checkedListBoxSubItems.Size = new Size(405, 394);
+            checkedListBoxSubItems.Size = new Size(405, 420);
             checkedListBoxSubItems.TabIndex = 6;
             checkedListBoxSubItems.ItemCheck += checkedListBoxSubItems_ItemCheck;
             // 
@@ -148,12 +150,34 @@
             picSave.TabStop = false;
             picSave.Click += picSave_Click;
             // 
+            // btnExportCsv
+            // 
+            btnExportCsv.Location = new Point(3, 449);
+            btnExportCsv.Name = "btnExportCsv";
+            btnExportCsv.Size = new Size(98, 32);
+            btnExportCsv.TabIndex = 10;
+            btnExportCsv.Text = "INI > CSV";
+            btnExportCsv.UseVisualStyleBackColor = true;
+            btnExportCsv.Click += btnExportCsv_Click;
+            // 
+            // btnImportCsv
+            // 
+            btnImportCsv.Location = new Point(107, 449);
+            btnImportCsv.Name = "btnImportCsv";
+            btnImportCsv.Size = new Size(98, 32);
+            btnImportCsv.TabIndex = 11;
+            btnImportCsv.Text = "CSV > INI";
+            btnImportCsv.UseVisualStyleBackColor = true;
+            btnImportCsv.Click += btnImportCsv_Click;
+            // 
             // frmMttSelection
             // 
             AutoScaleDimensions = new SizeF(9F, 19F);
             AutoScaleMode = AutoScaleMode.Font;
             BackColor = SystemColors.HighlightText;
-            ClientSize = new Size(842, 515);
+            ClientSize = new Size(842, 532);
+            Controls.Add(btnImportCsv);
+            Controls.Add(btnExportCsv);
             Controls.Add(picSave);
             Controls.Add(label2);
             Controls.Add(checkedListBoxSubItems);
@@ -187,5 +211,7 @@
         private Label label2;
         private PictureBox picSave;
         private SaveFileDialog saveFileDialog;
+        private Button btnExportCsv;
+        private Button btnImportCsv;
     }
 }

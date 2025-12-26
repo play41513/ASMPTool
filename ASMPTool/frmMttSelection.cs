@@ -18,7 +18,7 @@ namespace ASMPTool
         private readonly LoginInfoModel _loginInfo;
         public INIFileModel ModifiedTestPlan { get; private set; }
         private bool _isUpdatingFromCode = false;
-        public List<bool> EnabledStates { get; private set; } = new List<bool>();
+        public List<bool> EnabledStates { get; private set; } = [];
         public int LoopCount { get; private set; } = 1;
         public frmMttSelection(List<Tuple<string, int>> testItemHeaders, INIFileModel currentTestPlan, LoginInfoModel loginInfo)
         {
@@ -36,30 +36,27 @@ namespace ASMPTool
         }
         private void btnUncheckAll_Click(object sender, EventArgs e)
         {
-            // 1. 開啟旗標，暫停 ItemCheck 的觸發邏輯，避免畫面閃爍
             _isUpdatingFromCode = true;
 
             try
             {
-                // 2. 清除左側主列表的所有勾選
+                // 清除左側主列表的所有勾選
                 for (int i = 0; i < checkedListBoxItems.Items.Count; i++)
                 {
                     checkedListBoxItems.SetItemChecked(i, false);
                 }
 
-                // 3. 將 Model 中「所有任務」都設為停用
+                // 將 Model 中「所有任務」都設為停用
                 foreach (var task in ModifiedTestPlan.Tasks)
                 {
                     task.Enable = false;
                 }
 
-                // 4. 清空並禁用右側子列表 (因為左邊都取消了，右邊自然沒東西)
                 checkedListBoxSubItems.Items.Clear();
                 checkedListBoxSubItems.Enabled = false;
             }
             finally
             {
-                // 5. 確保旗標關閉，恢復正常運作
                 _isUpdatingFromCode = false;
             }
         }
@@ -135,7 +132,7 @@ namespace ASMPTool
             numLoopCount.Enabled = chkLoopTest.Checked;
         }
 
-        private void checkedListBoxItems_SelectedIndexChanged(object sender, EventArgs e)
+        private void checkedListBoxItems_SelectedIndexChanged(object? sender, EventArgs e)
         {
             int selectedIndex = checkedListBoxItems.SelectedIndex;
             if (selectedIndex != -1)
@@ -146,7 +143,7 @@ namespace ASMPTool
             }
         }
 
-        private void checkedListBoxItems_ItemCheck(object sender, ItemCheckEventArgs e)
+        private void checkedListBoxItems_ItemCheck(object? sender, ItemCheckEventArgs e)
         {
             if (_isUpdatingFromCode) return;
             _isUpdatingFromCode = true;
@@ -173,7 +170,7 @@ namespace ASMPTool
             _isUpdatingFromCode = false;
         }
 
-        private void checkedListBoxSubItems_ItemCheck(object sender, ItemCheckEventArgs e)
+        private void checkedListBoxSubItems_ItemCheck(object? sender, ItemCheckEventArgs e)
         {
             if (_isUpdatingFromCode) return;
 
@@ -226,6 +223,78 @@ namespace ASMPTool
                 catch (Exception ex)
                 {
                     MessageBox.Show($"儲存失敗: {ex.Message}", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+        }
+
+        private void btnExportCsv_Click(object sender, EventArgs e)
+        {
+            string initialDirectory = Path.Combine(Directory.GetCurrentDirectory(), "WorkStationFile", _loginInfo.ProductModel, _loginInfo.WorkStation);
+            if (!Directory.Exists(initialDirectory)) Directory.CreateDirectory(initialDirectory);
+
+            SaveFileDialog sfd = new()
+            {
+                InitialDirectory = initialDirectory,
+                FileName = "TestPlanExport.csv",
+                Filter = "CSV files (*.csv)|*.csv|All files (*.*)|*.*"
+            };
+
+            if (sfd.ShowDialog() == DialogResult.OK)
+            {
+                try
+                {
+                    // 使用新增加的 SaveToCsv 方法
+                    INIFileBLL.SaveToCsv(ModifiedTestPlan, sfd.FileName);
+                    MessageBox.Show("CSV 匯出成功!", "成功", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"匯出失敗: {ex.Message}", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+        }
+
+        private void btnImportCsv_Click(object sender, EventArgs e)
+        {
+            // 1. 開啟檔案選擇器讓使用者選 CSV
+            OpenFileDialog ofd = new();
+            string initialDirectory = Path.Combine(Directory.GetCurrentDirectory(), "WorkStationFile", _loginInfo.ProductModel, _loginInfo.WorkStation);
+            if (!Directory.Exists(initialDirectory)) Directory.CreateDirectory(initialDirectory);
+
+            ofd.InitialDirectory = initialDirectory;
+            ofd.Filter = "CSV files (*.csv)|*.csv|All files (*.*)|*.*";
+            ofd.Title = "請選擇要轉換的 CSV 檔案";
+
+            if (ofd.ShowDialog() == DialogResult.OK)
+            {
+                try
+                {
+                    // 2. 讀取 CSV 內容到臨時 Model (不替換 ModifiedTestPlan)
+                    INIFileModel tempModel = INIFileBLL.LoadFromCsv(ofd.FileName);
+
+                    // 3. 準備存檔對話框 (另存新檔)
+                    SaveFileDialog sfd = new()
+                    {
+                        // 設定預設路徑為「該 CSV 的資料夾」
+                        InitialDirectory = Path.GetDirectoryName(ofd.FileName),
+
+                        // 設定預設檔名同名，只是副檔名改為 ini
+                        FileName = Path.GetFileNameWithoutExtension(ofd.FileName) + ".ini",
+
+                        Filter = "INI files (*.ini)|*.ini|All files (*.*)|*.*",
+                        Title = "另存為 INI 設定檔"
+                    };
+
+                    if (sfd.ShowDialog() == DialogResult.OK)
+                    {
+                        // 4. 將臨時 Model 存為 INI
+                        INIFileBLL.SaveToIni(tempModel, sfd.FileName);
+                        MessageBox.Show($"轉換成功！\n已儲存至: {sfd.FileName}", "成功", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"轉換失敗: {ex.Message}", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
         }

@@ -7,10 +7,11 @@ using System.Runtime.InteropServices;
 namespace ASMPTool.DAL
 {
 
-    public class INIFileDAL()
+    public partial class INIFileDAL()
     {
-        [DllImport("kernel32")]
-        private static extern long WritePrivateProfileString(string section, string key, string val, string filePath);
+        [LibraryImport("kernel32", EntryPoint = "WritePrivateProfileStringW", SetLastError = true, StringMarshalling = StringMarshalling.Utf16)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static partial bool WritePrivateProfileString(string section, string key, string val, string filePath);
 
         static public string ReadString(string _filePath, string section, string key, string defaultValue = "")
         {

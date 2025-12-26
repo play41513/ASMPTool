@@ -17,12 +17,11 @@ namespace ASMP.ViewModel
         public int LoopCount { get; set; } = 1;
     }
     // 用於控制流程跳轉的例外
-    public class RetryException : Exception
+    public class RetryException(int targetIndex) : Exception
     {
-        public int TargetIndex { get; }
-        public RetryException(int targetIndex) { TargetIndex = targetIndex; }
+        public int TargetIndex { get; } = targetIndex;
     }
-    public class UIFormViewModel : ViewModelBase
+    public class UIFormViewModel : ViewModelBase, IDisposable
     {
         #region Private Fields
         // --- 錯誤資訊的私有儲存 ---
@@ -128,6 +127,13 @@ namespace ASMP.ViewModel
             _clockTimer = new System.Threading.Timer(OnClockTick, null, 0, 1000);
             _uploadTimer = new System.Threading.Timer(OnUploadTimerTick, null, 5000, 30000);
             Task.Run(MainTestLoop);
+        }
+        public void Dispose()
+        {
+            // 讀取並釋放 Timer
+            _clockTimer?.Dispose();
+            _uploadTimer?.Dispose();
+            GC.SuppressFinalize(this); 
         }
         private void OnUploadTimerTick(object? state)
         {
@@ -324,7 +330,7 @@ namespace ASMP.ViewModel
             {
                 //LogMessageAppended?.Invoke(new LogDisplayInfo { Text = "CLEAR_LOG" });
 
-                OverallResult = message;
+                OverallResult = message ?? string.Empty;
                 OverallResultColor = Color.Silver;
                 TotalTestTime = "Total Time: 0.00";
                 foreach (var step in TestSteps)
@@ -369,12 +375,12 @@ namespace ASMP.ViewModel
                     if (shouldBreakGroup)
                     {
                         if (currentGroup != null) allGroups.Add(currentGroup);
-                        currentGroup = new List<(ItemTask task, int index)>();
+                        currentGroup = [];
                     }
 
-                    currentGroup.Add((task, i));
+                    currentGroup!.Add((task, i));
                 }
-                if (currentGroup != null && currentGroup.Any()) { allGroups.Add(currentGroup); }
+                if (currentGroup != null && currentGroup.Count != 0) { allGroups.Add(currentGroup); }
 
                 var parallelExecutionList = new List<List<(ItemTask task, int index)>>();
                 int minTaskIndexToRun = -1;
@@ -398,7 +404,7 @@ namespace ASMP.ViewModel
                         else // 遇到循序組
                         {
                             // 步驟 1: 處理之前收集的所有並行任務
-                            if (parallelExecutionList.Any())
+                            if (parallelExecutionList.Count != 0)
                             {
                                 var parallelTasks = new List<Task<bool>>();
                                 bool isFirstParallelGroup = true;
@@ -460,7 +466,7 @@ namespace ASMP.ViewModel
                     }
                 }
 
-                if (parallelExecutionList.Any())
+                if (parallelExecutionList.Count != 0)
                 {
                     try
                     {
@@ -516,10 +522,7 @@ namespace ASMP.ViewModel
                 // 記錄第一筆錯誤資訊，確保 UI 顯示錯誤代碼
                 lock (_firstErrorLock)
                 {
-                    if (_firstErrorDetail == null)
-                    {
-                        _firstErrorDetail = errorMsg;
-                    }
+                    _firstErrorDetail ??= errorMsg;
                 }
 
                 // 嘗試顯示錯誤訊息給操作員 (使用 Invoke 確保 UI 執行緒安全)
@@ -572,7 +575,7 @@ namespace ASMP.ViewModel
                 var executionTask = Task.Run(() =>
                 {
                     if (task.FunctionTestType.Contains("MessageWindows.exe"))
-                    {
+                    {//目前沒使用這個功能，已經用了MessageWindowsDLL替代
                         return MessageBoxBLL.ExecuteMessageBox(task.FunctionTestType, out stepDetail);
                     }
                     else
@@ -616,10 +619,7 @@ namespace ASMP.ViewModel
                 {
                     lock (_firstErrorLock)
                     {
-                        if (_firstErrorDetail == null)
-                        {
-                            _firstErrorDetail = stepResultItem.Detail;
-                        }
+                        _firstErrorDetail ??= stepResultItem.Detail;
                     }
                     foreach (int ngTaskIndex in task.NGTest)
                     {
@@ -630,7 +630,7 @@ namespace ASMP.ViewModel
                             var ngTask = _testPlan.Tasks[actualIndex];
 
                             if (ngTask.FunctionTestType.Contains("MessageWindows.exe"))
-                            {
+                            {//目前沒使用這個功能，已經用了MessageWindowsDLL替代
                                 MessageBoxBLL.ExecuteMessageBox(ngTask.FunctionTestType, out _);
                             }
                             else

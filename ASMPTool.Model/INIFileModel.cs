@@ -9,7 +9,7 @@ namespace ASMPTool.Model
         public bool FunctionTest { get; set; }
         public string FunctionTestType { get; set; } = string.Empty;
         public string FunctionTestPath { get; set; } = string.Empty;
-        public List<int> NGTest { get; set; } = new();
+        public List<int> NGTest { get; set; } = [];
 
         public int RetryTarget { get; set; } = 0;
         public ItemTask Clone()
@@ -29,12 +29,14 @@ namespace ASMPTool.Model
 
     public class INIFileModel
     {
-        public List<ItemTask> Tasks { get; set; } = new();
+        public List<ItemTask> Tasks { get; set; } = [];
 
         public INIFileModel Clone()
         {
-            var newModel = new INIFileModel();
-            newModel.Tasks = this.Tasks.Select(t => t.Clone()).ToList();
+            var newModel = new INIFileModel
+            {
+                Tasks = this.Tasks.Select(t => t.Clone()).ToList()
+            };
             return newModel;
         }
     }

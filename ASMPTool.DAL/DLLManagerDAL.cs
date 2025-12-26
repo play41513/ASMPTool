@@ -42,7 +42,7 @@ namespace ASMPTool.DAL
         [return: MarshalAs(UnmanagedType.Bool)]
         private static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
 
-        private static readonly IntPtr HWND_NOTOPMOST = new IntPtr(-2);
+        private static readonly IntPtr HWND_NOTOPMOST = new(-2);
         private const uint SWP_NOMOVE = 0x0002;
         private const uint SWP_NOSIZE = 0x0001;
 
@@ -72,7 +72,7 @@ namespace ASMPTool.DAL
             {
                 // NLogDAL.Instance.LogWarning(new NLogModel("載入 .NET 組件: " + assemblyPath, "INFO"));
 
-                if (!_netPluginInstances.TryGetValue(assemblyPath, out IAutomationPlugin pluginInstance))
+                if (!_netPluginInstances.TryGetValue(assemblyPath, out IAutomationPlugin? pluginInstance))
                 {
                     Assembly assembly = Assembly.LoadFrom(assemblyPath);
                     Type? pluginType = null;
@@ -87,26 +87,25 @@ namespace ASMPTool.DAL
 
                     if (pluginType == null) throw new InvalidOperationException($"在 {assemblyPath} 中找不到實作 IAutomationPlugin 的類別。");
 
-                    pluginInstance = (IAutomationPlugin)Activator.CreateInstance(pluginType);
+                    object? instance = Activator.CreateInstance(pluginType);
+                    if (instance is IAutomationPlugin plugin)
+                    {
+                        pluginInstance = plugin;
+                    }
+                    else
+                    {
+                        throw new InvalidOperationException($"無法建立 {pluginType.FullName} 的實體，或該型別未實作 IAutomationPlugin。");
+                    }
                     _netPluginInstances[assemblyPath] = pluginInstance;
                 }
-
-                try
-                {
-                    // NLogDAL.Instance.LogWarning(new NLogModel("進入 .NET 外掛 Execute 函式", "INFO"));
-                    string result = pluginInstance.MacroTest(ownerHwnd, iniPath);
-                    return result;
-                }
-                finally
-                {
-                    ResetWindowTopMost(ownerHwnd);
-                }
+                string result = pluginInstance!.MacroTest(ownerHwnd, iniPath);
+                return result;
             }
         }
         private static string ExecuteNativePluginInternal(string dllFile, string iniPath, IntPtr ownerHwnd, bool retry)
         {
             // 1. 嘗試從快取中直接取得 Delegate
-            if (!_delegateCache.TryGetValue(dllFile, out Delegate macroTestAny))
+            if (!_delegateCache.TryGetValue(dllFile, out Delegate? macroTestAny))
             {
                 // 2. 如果快取中沒有，才進入準備階段
                 object loadLock = _libraryLoadLocks.GetOrAdd(dllFile, _ => new object());

@@ -7,15 +7,8 @@ using System.Collections.Generic;
 
 namespace ASMPTool.BLL
 {
-    public class INIFileBLL
+    public class INIFileBLL(string filePath)
     {
-        private readonly string _filePath;
-
-        public INIFileBLL(string filePath)
-        {
-            _filePath = filePath;
-        }
-
         /// <summary>
         /// 從 INI 檔案中讀取設定，並將其載入到一個新的 INIFileModel 物件中。
         /// </summary>
@@ -30,7 +23,7 @@ namespace ASMPTool.BLL
             for (int index = 1; ; index++)
             {
                 string section = $"item{index}";
-                string name = INIFileDAL.ReadString(_filePath, section, "ItemName");
+                string name = INIFileDAL.ReadString(filePath, section, "ItemName");
 
                 if (string.IsNullOrEmpty(name))
                 {
@@ -39,13 +32,13 @@ namespace ASMPTool.BLL
 
                 ItemTask task = new()
                 {
-                    Enable = INIFileDAL.ReadBoolean(_filePath, section, "Enable", false),
+                    Enable = INIFileDAL.ReadBoolean(filePath, section, "Enable", false),
                     Name = name,
-                    Sync = INIFileDAL.ReadBoolean(_filePath, section, "Sync", false),
-                    FunctionTest = INIFileDAL.ReadBoolean(_filePath, section, "FunctionEnable"),
-                    FunctionTestType = INIFileDAL.ReadString(_filePath, section, "FunctionType"),
-                    FunctionTestPath = INIFileDAL.ReadString(_filePath, section, "FunctionIniPath"),
-                    RetryTarget = INIFileDAL.ReadInteger(_filePath, section, "RetryTarget"),
+                    Sync = INIFileDAL.ReadBoolean(filePath, section, "Sync", false),
+                    FunctionTest = INIFileDAL.ReadBoolean(filePath, section, "FunctionEnable"),
+                    FunctionTestType = INIFileDAL.ReadString(filePath, section, "FunctionType"),
+                    FunctionTestPath = INIFileDAL.ReadString(filePath, section, "FunctionIniPath"),
+                    RetryTarget = INIFileDAL.ReadInteger(filePath, section, "RetryTarget"),
                     NGTest = GetNGTests(section)
                 };
                 tasks.Add(task);
@@ -101,7 +94,7 @@ namespace ASMPTool.BLL
 
             while (true)
             {
-                int result = INIFileDAL.ReadInteger(_filePath, section, $"NGItem{ngIndex}");
+                int result = INIFileDAL.ReadInteger(filePath, section, $"NGItem{ngIndex}");
                 if (result != 0)
                 {
                     ngTests.Add(result);
@@ -113,6 +106,84 @@ namespace ASMPTool.BLL
                 }
             }
             return ngTests;
+        }
+        /// <summary>
+        /// 將 Model 匯出為 CSV 格式
+        /// </summary>
+        public static void SaveToCsv(INIFileModel model, string filePath)
+        {
+            StringBuilder sb = new();
+
+            // 1. 寫入標題列
+            sb.AppendLine("Enable,ItemName,FunctionEnable,FunctionType,FunctionIniPath,Sync,RetryTarget,NGItem1,NGItem2,NGItem3");
+
+            // 2. 寫入每一列資料
+            foreach (var task in model.Tasks)
+            {
+                var ng1 = task.NGTest.Count > 0 ? task.NGTest[0].ToString() : "";
+                var ng2 = task.NGTest.Count > 1 ? task.NGTest[1].ToString() : "";
+                var ng3 = task.NGTest.Count > 2 ? task.NGTest[2].ToString() : "";
+
+                // 組合 CSV 行
+                string line = $"{(task.Enable ? "1" : "0")}," +
+                              $"{task.Name}," +
+                              $"{(task.FunctionTest ? "1" : "0")}," +
+                              $"{task.FunctionTestType}," +
+                              $"{task.FunctionTestPath}," +
+                              $"{(task.Sync ? "1" : "0")}," +
+                              $"{task.RetryTarget}," +
+                              $"{ng1},{ng2},{ng3}";
+
+                sb.AppendLine(line);
+            }
+
+            File.WriteAllText(filePath, sb.ToString(), Encoding.UTF8);
+        }
+
+        /// <summary>
+        /// 從 CSV 檔案讀取並轉換為 INIFileModel
+        /// </summary>
+        public static INIFileModel LoadFromCsv(string filePath)
+        {
+            var model = new INIFileModel();
+            var lines = File.ReadAllLines(filePath);
+
+            // 跳過標題列，從第一行開始讀取
+            for (int i = 1; i < lines.Length; i++)
+            {
+                string line = lines[i].Trim();
+                if (string.IsNullOrWhiteSpace(line)) continue;
+
+                // 簡單的 CSV 分割 (假設內容不含逗號)
+                string[] parts = line.Split(',');
+
+                // 確保欄位數量足夠 (至少到 RetryTarget)
+                if (parts.Length < 7) continue;
+
+                var task = new ItemTask
+                {
+                    Enable = parts[0].Trim() == "1",
+                    Name = parts[1].Trim(),
+                    FunctionTest = parts[2].Trim() == "1",
+                    FunctionTestType = parts[3].Trim(),
+                    FunctionTestPath = parts[4].Trim(),
+                    Sync = parts[5].Trim() == "1",
+                    RetryTarget = int.TryParse(parts[6].Trim(), out int rt) ? rt : 0,
+                    // 處理 NG Items (index 7, 8, 9)
+                    NGTest = []
+                };
+                for (int j = 7; j <= 9; j++)
+                {
+                    if (parts.Length > j && int.TryParse(parts[j].Trim(), out int ngVal) && ngVal != 0)
+                    {
+                        task.NGTest.Add(ngVal);
+                    }
+                }
+
+                model.Tasks.Add(task);
+            }
+
+            return model;
         }
     }
 }
