@@ -22,7 +22,7 @@ namespace ASMPTool.Model
                 FunctionTest = this.FunctionTest,
                 FunctionTestType = this.FunctionTestType,
                 FunctionTestPath = this.FunctionTestPath,
-                NGTest = new List<int>(this.NGTest) // 確保 List 也被複製
+                NGTest = new List<int>(this.NGTest)
             };
         }
     }

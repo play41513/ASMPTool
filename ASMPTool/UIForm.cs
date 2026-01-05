@@ -9,6 +9,7 @@ using System.Windows.Forms;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using Microsoft.Win32;
 
 namespace ASMPTool
 {
@@ -230,6 +231,23 @@ namespace ASMPTool
                 }
                 else if (!string.IsNullOrWhiteSpace(inputText))
                 {
+                    // 寫入 Registry 
+                    try
+                    {
+                        // 開啟或建立機碼 HKEY_CURRENT_USER\Software\MessageBoxResult
+                        using (RegistryKey key = Registry.CurrentUser.CreateSubKey(@"Software\MessageBoxResult"))
+                        {
+                            if (key != null)
+                            {
+                                key.SetValue("Barcode", inputText, RegistryValueKind.String);
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine($"寫入 Registry 失敗: {ex.Message}");
+                    }
+
                     _viewModel.BarcodeEnteredCommand.Execute(inputText);
                 }
             }
