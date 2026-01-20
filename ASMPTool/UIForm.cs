@@ -65,6 +65,31 @@ namespace ASMPTool
                 var result = MessageBox.Show(message, "重測確認", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
                 return result == DialogResult.Yes;
             };
+            AddDebugMenuOption();
+        }
+        private void AddDebugMenuOption()
+        {
+            // 修改重點：直接使用 Designer 已經建立好的 contextMenuStrip1
+            // 這樣可以保留原本的 "重啟Windows檔案總管" 和 "開啟設備示意圖" 選項
+            if (contextMenuStrip1 != null)
+            {
+                // 1. 加入分隔線 (讓介面比較美觀，區隔功能)
+                contextMenuStrip1.Items.Add(new ToolStripSeparator());
+
+                // 2. 建立 "開啟除錯視窗" 選項
+                var debugMenuItem = new ToolStripMenuItem("開啟除錯視窗 (Debug Console)");
+
+                // 3. 設定點擊事件
+                debugMenuItem.Click += (s, e) =>
+                {
+                    // 顯示 Debug 視窗
+                    DebugConsoleForm.Instance.Show();
+                    DebugConsoleForm.Instance.BringToFront();
+                };
+
+                // 4. 將新選項加入到現有的選單中
+                contextMenuStrip1.Items.Add(debugMenuItem);
+            }
         }
 
         #region ViewModel Event Handlers

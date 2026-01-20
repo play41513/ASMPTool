@@ -33,30 +33,28 @@ namespace ASMPTool.BLL
                 try
                 {
                     // 解析提取出來的 JSON 字串
-                    using (JsonDocument doc = JsonDocument.Parse(jsonString))
+                    using JsonDocument doc = JsonDocument.Parse(jsonString);
+                    JsonElement root = doc.RootElement;
+
+                    // 嘗試讀取每個 key 的值，這樣即使某個 key 不存在也不會出錯
+                    if (root.TryGetProperty("MAC1", out JsonElement mac1Element))
                     {
-                        JsonElement root = doc.RootElement;
+                        testResult.MACNumber1 = mac1Element.GetString()?.Trim().ToUpper() ?? string.Empty;
+                    }
 
-                        // 嘗試讀取每個 key 的值，這樣即使某個 key 不存在也不會出錯
-                        if (root.TryGetProperty("MAC1", out JsonElement mac1Element))
-                        {
-                            testResult.MACNumber1 = mac1Element.GetString()?.Trim().ToUpper() ?? string.Empty;
-                        }
+                    if (root.TryGetProperty("MAC2", out JsonElement mac2Element))
+                    {
+                        testResult.MACNumber2 = mac2Element.GetString()?.Trim().ToUpper() ?? string.Empty;
+                    }
 
-                        if (root.TryGetProperty("MAC2", out JsonElement mac2Element))
-                        {
-                            testResult.MACNumber2 = mac2Element.GetString()?.Trim().ToUpper() ?? string.Empty;
-                        }
+                    if (root.TryGetProperty("MAC3", out JsonElement mac3Element))
+                    {
+                        testResult.MACNumber3 = mac3Element.GetString()?.Trim().ToUpper() ?? string.Empty;
+                    }
 
-                        if (root.TryGetProperty("MAC3", out JsonElement mac3Element))
-                        {
-                            testResult.MACNumber3 = mac3Element.GetString()?.Trim().ToUpper() ?? string.Empty;
-                        }
-
-                        if (root.TryGetProperty("SN", out JsonElement snElement))
-                        {
-                            testResult.SerialNumber = snElement.GetString()?.Trim().ToUpper() ?? string.Empty;
-                        }
+                    if (root.TryGetProperty("SN", out JsonElement snElement))
+                    {
+                        testResult.SerialNumber = snElement.GetString()?.Trim().ToUpper() ?? string.Empty;
                     }
                 }
                 catch (JsonException ex)

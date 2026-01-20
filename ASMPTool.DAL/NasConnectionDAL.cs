@@ -6,7 +6,7 @@ using System.Net;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
-
+using System.IO;
 using System.Net.NetworkInformation;
 
 
@@ -18,6 +18,7 @@ namespace ASMPTool.DAL
 
     public class NasConnectionDAL
     {
+        private static bool _isTimeSynced = false;
         // Windows API
         [DllImport("mpr.dll", CharSet = CharSet.Ansi)]
         private static extern int WNetAddConnection2(NetResource netResource,
@@ -39,9 +40,49 @@ namespace ASMPTool.DAL
             public string? Comment;
             public string? Provider;
         }
-
         private const int RESOURCETYPE_DISK = 0x00000001;
         private const int CONNECT_TEMPORARY = 0x00000004;
+        // 時間同步
+        [StructLayout(LayoutKind.Sequential)]
+        private struct TIME_OF_DAY_INFO
+        {
+            public uint tod_elapsedt; // 自 1970/1/1 00:00:00 以來的秒數
+            public uint tod_msecs;
+            public uint tod_hours;
+            public uint tod_mins;
+            public uint tod_secs;
+            public uint tod_hunds;
+            public int tod_timezone;
+            public uint tod_tinterval;
+            public uint tod_day;
+            public uint tod_month;
+            public uint tod_year;
+            public uint tod_weekday;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct SYSTEMTIME
+        {
+            public ushort wYear;
+            public ushort wMonth;
+            public ushort wDayOfWeek;
+            public ushort wDay;
+            public ushort wHour;
+            public ushort wMinute;
+            public ushort wSecond;
+            public ushort wMilliseconds;
+        }
+
+        [DllImport("netapi32.dll", CharSet = CharSet.Unicode)]
+        private static extern int NetRemoteTOD(string UncServerName, ref IntPtr BufferPtr);
+
+        [DllImport("netapi32.dll")]
+        private static extern int NetApiBufferFree(IntPtr Buffer);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        private static extern bool SetSystemTime(ref SYSTEMTIME st);
+        // ------------------------------------------
+
 
         // 預設路徑
         private const string DEFAULT_LOG_PATH = @"\\swtool\swtool\logs";
@@ -78,7 +119,8 @@ namespace ASMPTool.DAL
                 // 先檢查路徑是否已經可以直接存取
                 if (IsPathAccessible(path))
                 {
-                    Console.WriteLine($"路徑 '{path}' 已可存取。");
+                    //Console.WriteLine($"路徑 '{path}' 已可存取。");
+                    SyncTimeWithNas(path);
                     return true;
                 }
 
@@ -110,6 +152,7 @@ namespace ASMPTool.DAL
                 if (NasConnectionDAL.IsPathAccessible(logPath))
                 {
                     Console.WriteLine("LOG路徑可用！");
+                    SyncTimeWithNas(logPath);
                     return true;
                 }
 
@@ -214,6 +257,7 @@ namespace ASMPTool.DAL
                 if (result == 0)
                 {
                     Console.WriteLine("使用帳密成功連接到NAS");
+                    SyncTimeWithNas(networkPath);
                     return true;
                 }
                 else
@@ -258,6 +302,7 @@ namespace ASMPTool.DAL
                     if (result == 0)
                     {
                         Console.WriteLine("無帳密成功連接NAS");
+                        SyncTimeWithNas(networkPath);
                         return true;
                     }
                     else
@@ -279,6 +324,80 @@ namespace ASMPTool.DAL
                 Console.WriteLine($"無帳密連接時，發生錯誤: {ex.Message}");
                 return false;
             }
+        }
+        // 與 NAS 同步時間 ---
+        private static void SyncTimeWithNas(string networkPath)
+        {
+            if (_isTimeSynced)
+            {
+                return;
+            }
+            try
+            {
+                string serverName = GetServerNameFromPath(networkPath);
+                if (string.IsNullOrEmpty(serverName)) return;
+
+                Console.WriteLine($"正在與 {serverName} 同步時間...");
+
+                IntPtr ptrBuffer = IntPtr.Zero;
+                int result = NetRemoteTOD(serverName, ref ptrBuffer);
+
+                if (result != 0)
+                {
+                    // 錯誤代碼 5 = Access Denied, 53 = Network Path Not Found
+                    Console.WriteLine($"無法取得 NAS 時間 (NetRemoteTOD)，錯誤碼: {result}");
+                    return;
+                }
+
+                var todInfo = Marshal.PtrToStructure<TIME_OF_DAY_INFO>(ptrBuffer);
+                int freeResult = NetApiBufferFree(ptrBuffer);
+                if (freeResult != 0)
+                {
+                    Console.WriteLine($"警告：釋放記憶體失敗，錯誤碼: {freeResult}");
+                }
+
+                // 計算 UTC 時間
+                DateTime nasTimeUtc = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)
+                                      .AddSeconds(todInfo.tod_elapsedt);
+
+                SYSTEMTIME st = new()
+                {
+                    wYear = (ushort)nasTimeUtc.Year,
+                    wMonth = (ushort)nasTimeUtc.Month,
+                    wDay = (ushort)nasTimeUtc.Day,
+                    wHour = (ushort)nasTimeUtc.Hour,
+                    wMinute = (ushort)nasTimeUtc.Minute,
+                    wSecond = (ushort)nasTimeUtc.Second,
+                    wMilliseconds = 0
+                };
+
+                // 設定本地時間 (需要管理員權限)
+                if (SetSystemTime(ref st))
+                {
+                    Console.WriteLine($"時間已同步。NAS 時間 (Local): {nasTimeUtc.ToLocalTime()}");
+                    _isTimeSynced = true;
+                }
+                else
+                {
+                    Console.WriteLine("設定本地時間失敗。請確認程式是否以「系統管理員身分」執行。");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"同步時間發生例外: {ex.Message}");
+            }
+        }
+
+        private static string GetServerNameFromPath(string path)
+        {
+            if (string.IsNullOrWhiteSpace(path)) return "";
+            // 將 \\server\share\path 轉為 \\server
+            string[] parts = path.Split(['\\'], StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length > 0)
+            {
+                return "\\\\" + parts[0];
+            }
+            return "";
         }
     }
 }
