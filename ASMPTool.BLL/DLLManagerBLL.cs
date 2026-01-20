@@ -13,11 +13,19 @@ namespace ASMPTool.BLL
     {
         public static bool ExecuteSpecificPlugin(string dllFile, string iniPath, out string msg, IntPtr ownerHwnd, TestResultModel testResult, bool isRetry = false)
         {
+            string dllName = Path.GetFileName(dllFile);
+            Console.WriteLine($"[DLLManagerBLL] 準備呼叫 DLL: {dllName} (Retry={isRetry})");
+
             string result = IDLLManagerDAL.ExecuteSpecificPlugin(dllFile, iniPath, ownerHwnd, isRetry);
             msg = result;
+            Console.WriteLine($"[DLLManagerBLL] {dllName} 回傳結果: {result}");
 
             StringAnalysis(result, testResult);
-
+            bool isSuccess = !result.Contains("ERROR");
+            if (!isSuccess)
+            {
+                Console.WriteLine($"[DLLManagerBLL] {dllName} 判定失敗 (包含 ERROR)"); // [Log]
+            }
             return !result.Contains("ERROR");
         }
 
@@ -29,6 +37,7 @@ namespace ASMPTool.BLL
             if (dataMatch.Success)
             {
                 string jsonString = dataMatch.Groups[1].Value;
+                Console.WriteLine($"[DLLManagerBLL] 抓取到 JSON 資料: {jsonString}");
 
                 try
                 {
@@ -40,36 +49,49 @@ namespace ASMPTool.BLL
                     if (root.TryGetProperty("MAC1", out JsonElement mac1Element))
                     {
                         testResult.MACNumber1 = mac1Element.GetString()?.Trim().ToUpper() ?? string.Empty;
+                        Console.WriteLine($"[DLLManagerBLL] 解析 MAC1: {testResult.MACNumber1}");
                     }
 
                     if (root.TryGetProperty("MAC2", out JsonElement mac2Element))
                     {
                         testResult.MACNumber2 = mac2Element.GetString()?.Trim().ToUpper() ?? string.Empty;
+                        Console.WriteLine($"[DLLManagerBLL] 解析 MAC2: {testResult.MACNumber1}");
                     }
 
                     if (root.TryGetProperty("MAC3", out JsonElement mac3Element))
                     {
                         testResult.MACNumber3 = mac3Element.GetString()?.Trim().ToUpper() ?? string.Empty;
+                        Console.WriteLine($"[DLLManagerBLL] 解析 MAC3: {testResult.MACNumber1}");
                     }
 
                     if (root.TryGetProperty("SN", out JsonElement snElement))
                     {
                         testResult.SerialNumber = snElement.GetString()?.Trim().ToUpper() ?? string.Empty;
+                        Console.WriteLine($"[DLLManagerBLL] 解析 SN: {testResult.SerialNumber}");
                     }
                 }
                 catch (JsonException ex)
                 {
-                    Console.WriteLine($"JSON parsing failed: {ex.Message}");
+                    Console.WriteLine($"[DLLManagerBLL] JSON 解析失敗: {ex.Message}");
+                }
+            }
+            else
+            {
+                if (!result.StartsWith("LOG:ERROR"))
+                {
+                    Console.WriteLine($"[DLLManagerBLL] 注意: 回傳字串中未發現 'DATA:{{...}}#' 格式");
                 }
             }
         }
         public static void ReleaseDll(string dllFile)
         {
+            Console.WriteLine($"[DLLManagerBLL] 釋放 DLL: {Path.GetFileName(dllFile)}");
             IDLLManagerDAL.ReleaseDll(dllFile);
         }
 
         public static void ReleaseAllDlls()
         {
+            Console.WriteLine("[DLLManagerBLL] 釋放所有 DLL");
             IDLLManagerDAL.ReleaseAllDlls();
         }
 

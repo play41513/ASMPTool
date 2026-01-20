@@ -44,7 +44,10 @@ namespace ASMPTool
 
             // To customize application configuration such as set high DPI settings or default font,
             // see https://aka.ms/applicationconfiguration.
+
             ApplicationConfiguration.Initialize();
+            var _ = DebugConsoleForm.Instance;
+            Console.WriteLine("[System] 程式啟動，Log 系統已就緒...");
             Application.Run(new frmLogin());
         }
     }

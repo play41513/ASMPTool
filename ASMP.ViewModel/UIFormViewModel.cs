@@ -110,6 +110,7 @@ namespace ASMP.ViewModel
 
             // 載入測試項目
             string filePath = $@"WorkStationFile\{_loginInfo.ProductModel}\{_loginInfo.WorkStation}\{_loginInfo.Version}";
+            Console.WriteLine($"[ViewModel] 正在載入測試計畫: {filePath}");
             _originalTestPlan = new INIFileBLL(filePath).LoadToModel();
             _testPlan = new INIFileBLL(filePath).LoadToModel();
 
@@ -126,6 +127,7 @@ namespace ASMP.ViewModel
 
             _clockTimer = new System.Threading.Timer(OnClockTick, null, 0, 1000);
             _uploadTimer = new System.Threading.Timer(OnUploadTimerTick, null, 5000, 30000);
+            Console.WriteLine("[ViewModel] 初始化完成，啟動 MainTestLoop");
             Task.Run(MainTestLoop);
         }
         public void Dispose()
@@ -156,6 +158,7 @@ namespace ASMP.ViewModel
 
         private void OnEnterMttMode(object? parameter)
         {
+            Console.WriteLine("[ViewModel] 準備進入 MTT 工程模式...");
             _barcodeTcs.TrySetCanceled();
             _uiSyncContext.Post(_ => IsScanBarcodeVisible = false, null);
 
@@ -174,6 +177,7 @@ namespace ASMP.ViewModel
 
                 if (settings != null)
                 {
+                    Console.WriteLine($"[ViewModel] MTT 設定完成。LoopCount: {settings.LoopCount}");
                     _loopCount = settings.LoopCount;
                     _testPlan = settings.ModifiedTestPlan;
                     ResetForNewTest("WAIT");
@@ -183,6 +187,8 @@ namespace ASMP.ViewModel
                         TestSteps.Add(new TestStepViewModel(i, _testPlan.Tasks[i]));
                     }
                 }
+                else
+                    Console.WriteLine("[ViewModel] 使用者取消 MTT 設定");
             }, null);
         }
 
@@ -191,6 +197,7 @@ namespace ASMP.ViewModel
             if (!string.IsNullOrEmpty(barcode))
             {
                 // 當使用者輸入條碼後，我們透過 TaskCompletionSource 來喚醒正在等待的主迴圈。
+                Console.WriteLine($"[ViewModel] 接收到條碼: {barcode}，準備喚醒主流程");
                 _barcodeTcs.TrySetResult(barcode);
             }
         }
@@ -204,16 +211,20 @@ namespace ASMP.ViewModel
         // 主測試流程 
         private async Task MainTestLoop()
         {
+            Console.WriteLine("[ViewModel] 進入主測試迴圈 (MainTestLoop)");
             while (true)
             {
                 string barcode = "";
                 try
                 {
                     // 1. 等待掃描MES條碼
+                    Console.WriteLine("[ViewModel] 等待使用者掃描條碼...");
                     barcode = await RequestBarcodeScanAsync();
+                    Console.WriteLine($"[ViewModel] 條碼確認: {barcode}");
                 }
                 catch (TaskCanceledException)
                 {
+                    Console.WriteLine("[ViewModel] 掃描等待被取消 (可能是進入 MTT 或其他操作)");
                     continue;
                 }
                 _uiSyncContext.Post(_ => LoopStatus = "", null);
@@ -222,6 +233,7 @@ namespace ASMP.ViewModel
                 _firstErrorDetail = null;
                 for (int currentLoop = 1; currentLoop <= _loopCount; currentLoop++)
                 {
+                    Console.WriteLine($"[ViewModel] --- 開始測試循環 {currentLoop} / {_loopCount} ---");
                     var testResult = new TestResultModel { ScanBarcodeNumber = barcode };
                     var logBuilder = new StringBuilder();
                     // 更新UI顯示當前循環次數
@@ -243,6 +255,7 @@ namespace ASMP.ViewModel
                     totalTimeStopwatch.Stop();
                     totalTimeTimer.Dispose();
                     _uiSync_UpdateTotalTime(totalTimeStopwatch.Elapsed.TotalSeconds);
+                    Console.WriteLine($"[ViewModel] 循環 {currentLoop} 結束。結果: {(isPassed ? "PASS" : "FAIL")}, 總耗時: {totalTimeStopwatch.Elapsed.TotalSeconds:F2}s");
 
                     if (currentLoop == _loopCount || !isPassed)
                     {
@@ -266,6 +279,7 @@ namespace ASMP.ViewModel
                         string logForErrorCode = _firstErrorDetail ?? logBuilder.ToString();
                         errorCode = _errorCodeBLL.GetErrorCodeKey(logBuilder.ToString()) ?? "E999";
                         errorMsg = _errorCodeBLL.GetErrorDescription(errorCode);
+                        Console.WriteLine($"[ViewModel] 測試失敗。ErrorCode: {errorCode}, Msg: {errorMsg}");
                     }
 
                     var logInfo = new LogDisplayInfo
@@ -288,6 +302,7 @@ namespace ASMP.ViewModel
 
                     if (!LoggingBLL.SaveToCSV(_loginInfo, testResult) && !_nasWarningShown)
                     {
+                        Console.WriteLine("[ViewModel] [警告] 無法連線至伺服器，Log 儲存於本地");
                         _uiSyncContext.Post(_ => ShowMessageRequested?.Invoke("沒有連線到伺服器，傳送LOG失敗!\nNot connected to the server, failed to send log file!"), null);
                         _nasWarningShown = true;
                     }
@@ -406,6 +421,7 @@ namespace ASMP.ViewModel
                             // 步驟 1: 處理之前收集的所有並行任務
                             if (parallelExecutionList.Count != 0)
                             {
+                                Console.WriteLine($"[ViewModel] 執行並行群組 (Parallel Groups Count: {parallelExecutionList.Count})");
                                 var parallelTasks = new List<Task<bool>>();
                                 bool isFirstParallelGroup = true;
 
@@ -429,6 +445,7 @@ namespace ASMP.ViewModel
                     {
                         // 捕捉重測例外
                         int targetTaskIndex = ex.TargetIndex;
+                        Console.WriteLine($"[ViewModel] 捕捉到重測例外。跳轉至 Index: {targetTaskIndex}");
 
                         minTaskIndexToRun = targetTaskIndex;
                         // 1. 清除 UI 狀態 (從 Target 到 Current 的所有步驟)
@@ -470,6 +487,7 @@ namespace ASMP.ViewModel
                 {
                     try
                     {
+                        Console.WriteLine($"[ViewModel] 執行剩餘並行群組");
                         var parallelTasks = new List<Task<bool>>();
                         bool isFirstParallelGroup = true;
 
@@ -485,6 +503,7 @@ namespace ASMP.ViewModel
                     catch (RetryException ex)
                     {
                         int targetTaskIndex = ex.TargetIndex;
+                        Console.WriteLine($"[ViewModel] (剩餘任務中) 捕捉到重測例外。跳轉至 Index: {targetTaskIndex}");
                         minTaskIndexToRun = targetTaskIndex; // 設定過濾條件
 
                         // 1. 清除 UI (清除從目標到最後的所有項目)
@@ -517,6 +536,7 @@ namespace ASMP.ViewModel
             {
                 // 發生未預期的崩潰 (Crash)
                 string errorMsg = $"CRITICAL SYSTEM ERROR: {ex.Message}\nStack Trace: {ex.StackTrace}";
+                Console.WriteLine($"[ViewModel] [嚴重錯誤] {errorMsg}");
                 logBuilder.AppendLine(errorMsg);
 
                 // 記錄第一筆錯誤資訊，確保 UI 顯示錯誤代碼
@@ -541,6 +561,7 @@ namespace ASMP.ViewModel
                     continue;
                 }
                 if (!task.Enable) continue;
+                Console.WriteLine($"[ViewModel] 執行測試項目 [{index + 1}]: {task.Name}");
 
                 var correspondingStepVM = TestSteps[index];
                 if (canRequestScroll)
@@ -605,6 +626,8 @@ namespace ASMP.ViewModel
                     SpendTime = stepStopwatch.Elapsed.TotalSeconds,
                     Detail = stepDetail
                 };
+                Console.WriteLine($"[ViewModel] 項目 [{task.Name}] 完成。結果: {stepResultItem.Result}, 耗時: {stepResultItem.SpendTime:F2}s"); 
+                if (!stepPassed) Console.WriteLine($"[ViewModel] 失敗詳情: {stepDetail}"); 
 
                 testResult.StepResults.Add(stepResultItem);
                 logBuilder.AppendLine(stepResultItem.Detail);
@@ -628,7 +651,7 @@ namespace ASMP.ViewModel
                         if (actualIndex >= 0 && actualIndex < _testPlan.Tasks.Count)
                         {
                             var ngTask = _testPlan.Tasks[actualIndex];
-
+                            Console.WriteLine($"[ViewModel] 執行 NG 關聯測試: {ngTask.Name}");
                             if (ngTask.FunctionTestType.Contains("MessageWindows.exe"))
                             {//目前沒使用這個功能，已經用了MessageWindowsDLL替代
                                 MessageBoxBLL.ExecuteMessageBox(ngTask.FunctionTestType, out _);
@@ -644,6 +667,7 @@ namespace ASMP.ViewModel
                     if (task.RetryTarget > 0)
                     {
                         // 確保不在 UI 執行緒阻塞，使用 Invoke 呼叫 UI 層顯示對話框
+                        Console.WriteLine($"[ViewModel] 檢測到 RetryTarget: {task.RetryTarget}，詢問使用者是否重測...");
                         bool userWantsRetry = false;
 
                         // 透過事件詢問 View
@@ -661,8 +685,11 @@ namespace ASMP.ViewModel
                         if (userWantsRetry)
                         {
                             // 拋出例外，攜帶目標索引 (轉換為 0-based)
+                            Console.WriteLine("[ViewModel] 使用者選擇重測");
                             throw new RetryException(task.RetryTarget - 1);
                         }
+                        else
+                            Console.WriteLine("[ViewModel] 使用者放棄重測");
                     }
                     return false;
                 }

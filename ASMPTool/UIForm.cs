@@ -69,11 +69,11 @@ namespace ASMPTool
         }
         private void AddDebugMenuOption()
         {
-            // 修改重點：直接使用 Designer 已經建立好的 contextMenuStrip1
+            // 直接使用 Designer 已經建立好的 contextMenuStrip1
             // 這樣可以保留原本的 "重啟Windows檔案總管" 和 "開啟設備示意圖" 選項
             if (contextMenuStrip1 != null)
             {
-                // 1. 加入分隔線 (讓介面比較美觀，區隔功能)
+                // 1. 加入分隔線
                 contextMenuStrip1.Items.Add(new ToolStripSeparator());
 
                 // 2. 建立 "開啟除錯視窗" 選項
@@ -170,6 +170,12 @@ namespace ASMPTool
             {
                 if(logInfo.Barcode == null || logInfo.Barcode == "0") 
                     return;
+                if (textBox.TextLength > 20000)
+                {
+                    textBox.Select(0, textBox.TextLength / 2);
+                    textBox.SelectedText = "";
+                    textBox.AppendText("[系統] Log 已自動清理...\r\n");
+                }
                 // 產生帶有標題的格式化字串          
                 string displayText = $"{logInfo.PassCount.ToString("D5")} |" +
                                      $"{logInfo.Timestamp}| " +
@@ -195,6 +201,7 @@ namespace ASMPTool
         #region UI Event Handlers
         private void restartExplorerMenuItem_Click(object sender, EventArgs e)
         {
+            Console.WriteLine("[UI] 使用者請求重啟檔案總管...");
             try
             {
                 // 尋找所有名為 "explorer" 的處理程序
@@ -203,12 +210,14 @@ namespace ASMPTool
                 {
                     // 強制結束處理程序
                     process.Kill();
+                    Console.WriteLine($"[UI] 已結束 explorer 程序 ID: {process.Id}");
                 }
-                // Windows 通常會自動偵測到 explorer.exe 被關閉並重新啟動它
+                // Windows 會自動偵測到 explorer.exe 被關閉並重新啟動它
                 MessageBox.Show(this, "Windows 檔案總管已成功重啟。", "成功", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
             catch (Exception ex)
             {
+                Console.WriteLine($"[UI] 重啟檔案總管失敗: {ex.Message}");
                 MessageBox.Show(this, $"重啟檔案總管時發生錯誤: {ex.Message}", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
@@ -224,6 +233,7 @@ namespace ASMPTool
                     "EquipmentDiagram.jpg"
                 );
                 string fullPath = Path.Combine(Directory.GetCurrentDirectory(), relativePath);
+                Console.WriteLine($"[UI] 嘗試開啟示意圖路徑: {fullPath}");
 
                 if (File.Exists(fullPath))
                 {
@@ -236,11 +246,13 @@ namespace ASMPTool
                 }
                 else
                 {
+                    Console.WriteLine($"[UI] 找不到示意圖檔案");
                     MessageBox.Show(this, $"找不到示意圖檔案：\n{fullPath}", "檔案不存在", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 }
             }
             catch (Exception ex)
             {
+                Console.WriteLine($"[UI] 開啟示意圖時發生錯誤: {ex.Message}");
                 MessageBox.Show(this, $"開啟檔案時發生錯誤：\n{ex.Message}", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
@@ -250,8 +262,10 @@ namespace ASMPTool
             {
                 e.Handled = true;
                 string inputText = tBoxScanBarcode.Text.Trim();
+                Console.WriteLine($"[UI] 收到條碼輸入: {inputText}");
                 if (inputText.Equals("MTT", StringComparison.OrdinalIgnoreCase))
                 {
+                    Console.WriteLine("[UI] 偵測到 MTT 指令，進入工程模式");
                     _viewModel.EnterMttModeCommand.Execute(null);
                 }
                 else if (!string.IsNullOrWhiteSpace(inputText))
@@ -265,12 +279,14 @@ namespace ASMPTool
                             if (key != null)
                             {
                                 key.SetValue("Barcode", inputText, RegistryValueKind.String);
+                                Console.WriteLine($"[UI] 條碼已寫入 Registry: {inputText}");
                             }
                         }
                     }
                     catch (Exception ex)
                     {
                         Debug.WriteLine($"寫入 Registry 失敗: {ex.Message}");
+                        Console.WriteLine($"[UI] Registry 寫入失敗: {ex.Message}");
                     }
 
                     _viewModel.BarcodeEnteredCommand.Execute(inputText);

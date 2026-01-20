@@ -74,29 +74,38 @@ namespace ASMPTool.DAL
 
                 if (!_netPluginInstances.TryGetValue(assemblyPath, out IAutomationPlugin? pluginInstance))
                 {
-                    Assembly assembly = Assembly.LoadFrom(assemblyPath);
-                    Type? pluginType = null;
-                    foreach (var type in assembly.GetExportedTypes())
+                    Console.WriteLine($"[DLLManagerDAL] 首次載入 .NET DLL: {Path.GetFileName(assemblyPath)}"); // [Log]
+                    try
                     {
-                        if (typeof(IAutomationPlugin).IsAssignableFrom(type) && !type.IsInterface)
+                        Assembly assembly = Assembly.LoadFrom(assemblyPath);
+                        Type? pluginType = null;
+                        foreach (var type in assembly.GetExportedTypes())
                         {
-                            pluginType = type;
-                            break;
+                            if (typeof(IAutomationPlugin).IsAssignableFrom(type) && !type.IsInterface)
+                            {
+                                pluginType = type;
+                                break;
+                            }
                         }
-                    }
 
-                    if (pluginType == null) throw new InvalidOperationException($"在 {assemblyPath} 中找不到實作 IAutomationPlugin 的類別。");
+                        if (pluginType == null) throw new InvalidOperationException($"在 {assemblyPath} 中找不到實作 IAutomationPlugin 的類別。");
 
-                    object? instance = Activator.CreateInstance(pluginType);
-                    if (instance is IAutomationPlugin plugin)
-                    {
-                        pluginInstance = plugin;
+                        object? instance = Activator.CreateInstance(pluginType);
+                        if (instance is IAutomationPlugin plugin)
+                        {
+                            pluginInstance = plugin;
+                        }
+                        else
+                        {
+                            throw new InvalidOperationException($"無法建立 {pluginType.FullName} 的實體。");
+                        }
+                        _netPluginInstances[assemblyPath] = pluginInstance;
                     }
-                    else
+                    catch (Exception ex)
                     {
-                        throw new InvalidOperationException($"無法建立 {pluginType.FullName} 的實體，或該型別未實作 IAutomationPlugin。");
+                        Console.WriteLine($"[DLLManagerDAL] 載入 .NET DLL 發生例外: {ex.Message}"); // [Log]
+                        throw;
                     }
-                    _netPluginInstances[assemblyPath] = pluginInstance;
                 }
                 string result = pluginInstance!.MacroTest(ownerHwnd, iniPath);
                 return result;
@@ -116,12 +125,14 @@ namespace ASMPTool.DAL
                     // 4. 雙重檢查，可能在等待鎖的期間，別的執行緒已經完成了載入
                     if (!_delegateCache.TryGetValue(dllFile, out macroTestAny))
                     {
+                        Console.WriteLine($"[DLLManagerDAL] 首次載入 Native DLL: {Path.GetFileName(dllFile)}");
                         if (!_nativeDllHandles.TryGetValue(dllFile, out IntPtr dllHandle))
                         {
                             dllHandle = LoadLibrary(dllFile);
                             if (dllHandle == IntPtr.Zero)
                             {
                                 int errorCode = Marshal.GetLastWin32Error();
+                                Console.WriteLine($"[DLLManagerDAL] LoadLibrary 失敗! ErrorCode: {errorCode} (Path: {dllFile})");
                                 return $"LOG:ERROR_LOAD_LIBRARY_{errorCode}#";
                             }
                             _nativeDllHandles.TryAdd(dllFile, dllHandle);
@@ -131,6 +142,7 @@ namespace ASMPTool.DAL
                         if (macroTestPtr == IntPtr.Zero)
                         {
                             int errorCode = Marshal.GetLastWin32Error();
+                            Console.WriteLine($"[DLLManagerDAL] 找不到函式進入點 'MacroTest'! ErrorCode: {errorCode}");
                             return $"LOG:ERROR_LOAD_LIBRARY_GET_PROC_ADDRESS_{errorCode}#";
                         }
 
@@ -190,8 +202,9 @@ namespace ASMPTool.DAL
                 // 這明確表示它不是一個 .NET 組件
                 return false;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                Console.WriteLine($"[DLLManagerDAL] 檢查 DLL 格式時發生錯誤: {ex.Message}"); 
                 return false;
             }
         }
@@ -204,12 +217,14 @@ namespace ASMPTool.DAL
             if (_nativeDllHandles.TryRemove(dllFile, out IntPtr handle))
             {
                 FreeLibrary(handle);
+                Console.WriteLine($"[DLLManagerDAL] 已釋放 Native DLL: {Path.GetFileName(dllFile)}");
             }
             _netPluginInstances.TryRemove(dllFile, out _);
         }
 
         public static void ReleaseAllDlls()
         {
+            Console.WriteLine("[DLLManagerDAL] 正在釋放所有 DLL 資源...");
             _delegateCache.Clear();
             foreach (var dllHandle in _nativeDllHandles.Values)
             {

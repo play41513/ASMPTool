@@ -39,13 +39,13 @@ namespace ASMPTool
             // 設定文字框屬性
             this._logBox.Dock = DockStyle.Fill;
             this._logBox.BackColor = Color.Black;
-            this._logBox.ForeColor = Color.Lime; // 駭客風格綠色文字，方便辨識
+            this._logBox.ForeColor = Color.Lime; 
             this._logBox.Font = new Font("Consolas", 10F);
             this._logBox.ReadOnly = true;
             this._logBox.Name = "logBox";
 
             // 設定視窗屬性
-            this.ClientSize = new Size(600, 400);
+            this.ClientSize = new Size(800, 500);
             this.Controls.Add(this._logBox);
             this.Name = "DebugConsoleForm";
             this.Text = "Debug Console Output";
@@ -68,43 +68,51 @@ namespace ASMPTool
         public class TextBoxWriter : TextWriter
         {
             private readonly RichTextBox _output;
+            private const int MaxTextLength = 50000;
             public TextBoxWriter(RichTextBox output) { _output = output; }
 
             public override Encoding Encoding => Encoding.UTF8;
 
             public override void Write(char value)
             {
-                // 確保在 UI 執行緒上執行
-                if (_output.IsDisposed) return;
-                if (_output.InvokeRequired)
-                {
-                    _output.Invoke(new Action<char>(Write), value);
-                }
-                else
-                {
-                    _output.AppendText(value.ToString());
-                    _output.ScrollToCaret();
-                }
+                // 轉發給 Write(string) 統一處理
+                Write(value.ToString());
             }
 
             public override void Write(string? value)
             {
                 if (value == null) return;
                 if (_output.IsDisposed) return;
+
+                // 確保在 UI 執行緒執行
                 if (_output.InvokeRequired)
                 {
-                    _output.Invoke(new Action<string>(Write), value);
+                    // 使用 BeginInvoke 避免死鎖
+                    _output.BeginInvoke(new Action<string>(Write), value);
+                    return;
                 }
-                else
+
+                // 清理舊 Log 機制
+                if (_output.TextLength > MaxTextLength)
                 {
-                    _output.AppendText(value);
-                    _output.ScrollToCaret();
+                    // 一次刪除舊的一半內容
+                    _output.Select(0, _output.TextLength / 2);
+                    _output.SelectedText = "";
+
+                    // 補上一行提示，讓使用者知道前面被刪了
+                    _output.AppendText($"\n[系統] 為節省記憶體，已自動清除舊的 Log...\n--------------------------------\n");
                 }
+                // ------------------------------------
+
+                _output.AppendText(value);
+                _output.ScrollToCaret();
             }
 
             public override void WriteLine(string? value)
             {
-                Write((value ?? "") + Environment.NewLine);
+                string timestamp = DateTime.Now.ToString("HH:mm:ss.fff");
+                string messageWithTime = $"[{timestamp}] {value ?? ""}{Environment.NewLine}";
+                Write(messageWithTime);
             }
         }
     }
