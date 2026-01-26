@@ -108,6 +108,8 @@
             numLoopCount.Size = new Size(148, 41);
             numLoopCount.TabIndex = 4;
             numLoopCount.TextAlign = HorizontalAlignment.Center;
+            numLoopCount.Maximum = 99999;
+            numLoopCount.Minimum = 1;
             // 
             // label1
             // 

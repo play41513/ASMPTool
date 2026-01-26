@@ -144,27 +144,21 @@ namespace ASMPTool.DAL
         {
             try
             {
-                // 檢查當前網段
-                string currentIPAddress = NasConnectionDAL.GetLocalIPAddress();
-                Console.WriteLine($"IP地址: {currentIPAddress}");
-
-                // 是否為可用的網路路徑
                 if (NasConnectionDAL.IsPathAccessible(logPath))
                 {
-                    Console.WriteLine("LOG路徑可用！");
                     SyncTimeWithNas(logPath);
                     return true;
                 }
 
-                // 判斷是否需要帳密驗證
+                string currentIPAddress = NasConnectionDAL.GetLocalIPAddress();
+                // Console.WriteLine($"IP地址: {currentIPAddress}");
+
                 if (NasConnectionDAL.IsInAuthRequiredSubnet(currentIPAddress))
                 {
-                    Console.WriteLine("當前網段需要帳密驗證");
                     return ConnectWithCredentials(logPath, "user1234", "user1234");
                 }
                 else
                 {
-                    Console.WriteLine("當前網段不需要帳密驗證");
                     return ConnectWithoutCredentials(logPath);
                 }
             }
@@ -214,7 +208,11 @@ namespace ASMPTool.DAL
         {
             try
             {
-                // 嘗試列出目錄內容來驗證
+                if (Directory.Exists(path))
+                {
+                    return true;
+                }
+
                 Directory.GetDirectories(path);
                 return true;
             }
@@ -268,7 +266,10 @@ namespace ASMPTool.DAL
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"使用帳密連接時，發生錯誤: {ex.Message}");
+                if (!ex.Message.Contains("NTLM"))
+                {
+                    Console.WriteLine($"使用帳密連接時，發生錯誤: {ex.Message}");
+                }
                 return false;
             }
         }
@@ -301,19 +302,16 @@ namespace ASMPTool.DAL
 
                     if (result == 0)
                     {
-                        Console.WriteLine("無帳密成功連接NAS");
+                        //Console.WriteLine("無帳密成功連接NAS");
                         SyncTimeWithNas(networkPath);
                         return true;
                     }
                     else
                     {
                         result = WNetAddConnection2(netResource, "user1234", "user1234", CONNECT_TEMPORARY);
-                        if (result == 0)
-                        {
-                            Console.WriteLine("帳密成功連接NAS");
-                            return true;
-                        }
-                        Console.WriteLine($"無帳密連接時，發生錯誤: {result}");
+                        if (result == 0) return true;
+
+                        // Console.WriteLine($"無帳密連接時，發生錯誤: {result}");
                         throw new Win32Exception(result);
                     }
                 }
@@ -321,42 +319,28 @@ namespace ASMPTool.DAL
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"無帳密連接時，發生錯誤: {ex.Message}");
+                //Console.WriteLine($"無帳密連接時，發生錯誤: {ex.Message}");
                 return false;
             }
         }
         // 與 NAS 同步時間 ---
         private static void SyncTimeWithNas(string networkPath)
         {
-            if (_isTimeSynced)
-            {
-                return;
-            }
+            if (_isTimeSynced) return;
             try
             {
                 string serverName = GetServerNameFromPath(networkPath);
                 if (string.IsNullOrEmpty(serverName)) return;
 
-                Console.WriteLine($"正在與 {serverName} 同步時間...");
-
+                // Console.WriteLine($"正在與 {serverName} 同步時間...");
                 IntPtr ptrBuffer = IntPtr.Zero;
                 int result = NetRemoteTOD(serverName, ref ptrBuffer);
 
-                if (result != 0)
-                {
-                    // 錯誤代碼 5 = Access Denied, 53 = Network Path Not Found
-                    Console.WriteLine($"無法取得 NAS 時間 (NetRemoteTOD)，錯誤碼: {result}");
-                    return;
-                }
+                if (result != 0) return;
 
                 var todInfo = Marshal.PtrToStructure<TIME_OF_DAY_INFO>(ptrBuffer);
-                int freeResult = NetApiBufferFree(ptrBuffer);
-                if (freeResult != 0)
-                {
-                    Console.WriteLine($"警告：釋放記憶體失敗，錯誤碼: {freeResult}");
-                }
+                NetApiBufferFree(ptrBuffer);
 
-                // 計算 UTC 時間
                 DateTime nasTimeUtc = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)
                                       .AddSeconds(todInfo.tod_elapsedt);
 
@@ -371,21 +355,13 @@ namespace ASMPTool.DAL
                     wMilliseconds = 0
                 };
 
-                // 設定本地時間 (需要管理員權限)
                 if (SetSystemTime(ref st))
                 {
-                    Console.WriteLine($"時間已同步。NAS 時間 (Local): {nasTimeUtc.ToLocalTime()}");
+                    Console.WriteLine($"時間已同步。NAS 時間: {nasTimeUtc.ToLocalTime()}");
                     _isTimeSynced = true;
                 }
-                else
-                {
-                    Console.WriteLine("設定本地時間失敗。請確認程式是否以「系統管理員身分」執行。");
-                }
             }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"同步時間發生例外: {ex.Message}");
-            }
+            catch { }
         }
 
         private static string GetServerNameFromPath(string path)
