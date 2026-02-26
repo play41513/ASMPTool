@@ -147,7 +147,40 @@ namespace ASMPTool
                 }
             });
         }
+        private void RunDeviceCleanup()
+        {
+            try
+            {
+                string toolDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Tool", "DeviceCleanupCmd");
+                string exePath = Path.Combine(toolDir, "DeviceCleanupCmd.exe");
 
+                if (!File.Exists(exePath))
+                {
+                    Console.WriteLine($"[系統] 找不到清理工具：{exePath}");
+                    return;
+                }
+
+                ProcessStartInfo psi = new()
+                {
+                    FileName = exePath,
+                    Arguments = "* -s",
+                    UseShellExecute = false,
+                    CreateNoWindow = true, // 產線執行時不彈出黑視窗
+                    Verb = "runas"        // 確保管理員權限
+                };
+
+                using (Process process = Process.Start(psi))
+                {
+                    // 設定 10 秒超時以防萬一
+                    process?.WaitForExit(10000);
+                    Console.WriteLine("[系統] 離線設備紀錄清理完成 (已過濾 0BDA/17E9)。");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[系統] 執行設備清理失敗: {ex.Message}");
+            }
+        }
         private void OnShowMessageRequested(string message)
         {
             this.Invoke(() => MessageBox.Show(this, message, "Message", MessageBoxButtons.OK, MessageBoxIcon.Warning));
@@ -270,6 +303,7 @@ namespace ASMPTool
                 }
                 else if (!string.IsNullOrWhiteSpace(inputText))
                 {
+                    RunDeviceCleanup();
                     // 寫入 Registry 
                     try
                     {

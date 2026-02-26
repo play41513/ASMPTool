@@ -39,7 +39,8 @@ namespace ASMPTool.BLL
                     FunctionTestType = INIFileDAL.ReadString(filePath, section, "FunctionType"),
                     FunctionTestPath = INIFileDAL.ReadString(filePath, section, "FunctionIniPath"),
                     RetryTarget = INIFileDAL.ReadInteger(filePath, section, "RetryTarget"),
-                    NGTest = GetNGTests(section)
+                    NGTest = GetNGTests(section),
+                    PostTask = INIFileDAL.ReadBoolean(filePath, section, "PostTask")
                 };
                 tasks.Add(task);
             }

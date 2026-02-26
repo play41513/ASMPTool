@@ -250,6 +250,7 @@ namespace ASMP.ViewModel
 
                     // 3. 執行所有測試步驟
                     bool isPassed = await ExecuteTestStepsAsync(testResult, logBuilder);
+                    if (testResult.FinalResult == "FAIL") isPassed = false;
 
                     // 4. 測試結束，停止計時並更新最終結果
                     totalTimeStopwatch.Stop();
@@ -360,28 +361,25 @@ namespace ASMP.ViewModel
         {
             _uiSyncContext.Post(_ => TotalTestTime = $"Total Time: {seconds:F2}", null);
         }
-
         private async Task<bool> ExecuteTestStepsAsync(TestResultModel testResult, StringBuilder logBuilder)
         {
+            int minTaskIndexToRun = -1;
+
             try
             {
+                // 1. 群組分類邏輯 (保留您原始邏輯)
                 var allGroups = new List<List<(ItemTask task, int index)>>();
                 List<(ItemTask task, int index)>? currentGroup = null;
 
                 for (int i = 0; i < _testPlan.Tasks.Count; i++)
                 {
                     var task = _testPlan.Tasks[i];
-
                     bool shouldBreakGroup = false;
 
-                    if (currentGroup == null)
-                    {
-                        shouldBreakGroup = true;
-                    }
+                    if (currentGroup == null) shouldBreakGroup = true;
                     else
                     {
                         var lastTask = currentGroup.Last().task;
-
                         if (lastTask.Enable != task.Enable) shouldBreakGroup = true;
                         else if (lastTask.Sync != task.Sync) shouldBreakGroup = true;
                         else if (task.Enable && task.Sync) shouldBreakGroup = true;
@@ -392,21 +390,19 @@ namespace ASMP.ViewModel
                         if (currentGroup != null) allGroups.Add(currentGroup);
                         currentGroup = [];
                     }
-
                     currentGroup!.Add((task, i));
                 }
                 if (currentGroup != null && currentGroup.Count != 0) { allGroups.Add(currentGroup); }
 
                 var parallelExecutionList = new List<List<(ItemTask task, int index)>>();
-                int minTaskIndexToRun = -1;
-            ReExecuteLabel:
 
+                // 2. 主測試迴圈
                 for (int i = 0; i < allGroups.Count; i++)
                 {
                     var group = allGroups[i];
 
-                    if (group.Count <= 1 && !group.First().task.Enable) continue;
-                    if (!group.First().task.Enable && !group.Skip(1).Any(t => t.task.Enable)) continue;
+                    // 跳過不啟動的項目或 PostTask (PostTask 留在 finally 執行)
+                    if (group.All(g => !g.task.Enable || g.task.PostTask)) continue;
 
                     try
                     {
@@ -416,39 +412,31 @@ namespace ASMP.ViewModel
                         {
                             parallelExecutionList.Add(group);
                         }
-                        else // 遇到循序組
+                        else
                         {
-                            // 步驟 1: 處理之前收集的所有並行任務
                             if (parallelExecutionList.Count != 0)
                             {
-                                Console.WriteLine($"[ViewModel] 執行並行群組 (Parallel Groups Count: {parallelExecutionList.Count})");
                                 var parallelTasks = new List<Task<bool>>();
-                                bool isFirstParallelGroup = true;
-
-                                foreach (var parallelGroup in parallelExecutionList)
+                                bool isFirst = true;
+                                foreach (var pGrp in parallelExecutionList)
                                 {
-                                    parallelTasks.Add(ExecuteSingleGroupAsync(parallelGroup, testResult, logBuilder, canRequestScroll: isFirstParallelGroup, minTaskIndexToRun));
-                                    isFirstParallelGroup = false;
+                                    parallelTasks.Add(ExecuteSingleGroupAsync(pGrp, testResult, logBuilder, isFirst, minTaskIndexToRun));
+                                    isFirst = false;
                                 }
-
                                 bool[] results = await Task.WhenAll(parallelTasks);
                                 parallelExecutionList.Clear();
-                                if (results.Any(r => !r)) return false;
+                                if (results.Any(r => !r)) { return false; }
                             }
 
-                            // 步驟 2: 處理當前的循序任務
-                            bool sequentialResult = await ExecuteSingleGroupAsync(group, testResult, logBuilder, canRequestScroll: true, minTaskIndexToRun);
-                            if (!sequentialResult) return false;
+                            bool sequentialResult = await ExecuteSingleGroupAsync(group, testResult, logBuilder, true, minTaskIndexToRun);
+                            if (!sequentialResult) { return false; }
                         }
                     }
                     catch (RetryException ex)
                     {
-                        // 捕捉重測例外
+                        // 處理重測跳轉邏輯
                         int targetTaskIndex = ex.TargetIndex;
-                        Console.WriteLine($"[ViewModel] 捕捉到重測例外。跳轉至 Index: {targetTaskIndex}");
-
                         minTaskIndexToRun = targetTaskIndex;
-                        // 1. 清除 UI 狀態 (從 Target 到 Current 的所有步驟)
                         int currentMaxIndex = group.Max(t => t.index);
 
                         _uiSyncContext.Post(_ =>
@@ -464,92 +452,83 @@ namespace ASMP.ViewModel
                             }
                         }, null);
 
-                        // 2. 清除 TestResultModel 中的紀錄 (移除重測範圍內的結果)
                         for (int r = testResult.StepResults.Count - 1; r >= 0; r--)
                         {
-                            var resultItemName = testResult.StepResults[r].TestItemName;
-                            var taskIndex = _testPlan.Tasks.FindIndex(t => t.Name == resultItemName);
-                            if (taskIndex >= targetTaskIndex)
-                            {
-                                testResult.StepResults.RemoveAt(r);
-                            }
+                            var taskIndex = _testPlan.Tasks.FindIndex(t => t.Name == testResult.StepResults[r].TestItemName);
+                            if (taskIndex >= targetTaskIndex) testResult.StepResults.RemoveAt(r);
                         }
 
-                        // 3. 清除並行清單，避免狀態殘留
                         parallelExecutionList.Clear();
-                        // 4.重置 i
                         i = -1;
                         continue;
                     }
                 }
 
+                // 處理剩餘的並行任務
                 if (parallelExecutionList.Count != 0)
                 {
-                    try
+                    var pTasks = new List<Task<bool>>();
+                    bool isFirst = true;
+                    foreach (var pGrp in parallelExecutionList)
                     {
-                        Console.WriteLine($"[ViewModel] 執行剩餘並行群組");
-                        var parallelTasks = new List<Task<bool>>();
-                        bool isFirstParallelGroup = true;
-
-                        foreach (var parallelGroup in parallelExecutionList)
-                        {
-                            parallelTasks.Add(ExecuteSingleGroupAsync(parallelGroup, testResult, logBuilder, canRequestScroll: isFirstParallelGroup, minTaskIndexToRun));
-                            isFirstParallelGroup = false;
-                        }
-
-                        bool[] results = await Task.WhenAll(parallelTasks);
-                        if (results.Any(r => !r)) return false;
+                        pTasks.Add(ExecuteSingleGroupAsync(pGrp, testResult, logBuilder, isFirst, minTaskIndexToRun));
+                        isFirst = false;
                     }
-                    catch (RetryException ex)
-                    {
-                        int targetTaskIndex = ex.TargetIndex;
-                        Console.WriteLine($"[ViewModel] (剩餘任務中) 捕捉到重測例外。跳轉至 Index: {targetTaskIndex}");
-                        minTaskIndexToRun = targetTaskIndex; // 設定過濾條件
-
-                        // 1. 清除 UI (清除從目標到最後的所有項目)
-                        _uiSyncContext.Post(_ =>
-                        {
-                            for (int k = targetTaskIndex; k < TestSteps.Count; k++)
-                            {
-                                TestSteps[k].Result = "";
-                                TestSteps[k].SpendTime = "";
-                                TestSteps[k].Detail = "";
-                            }
-                        }, null);
-
-                        // 2. 清除 Result Model
-                        for (int r = testResult.StepResults.Count - 1; r >= 0; r--)
-                        {
-                            var resultItemName = testResult.StepResults[r].TestItemName;
-                            var taskIndex = _testPlan.Tasks.FindIndex(t => t.Name == resultItemName);
-                            if (taskIndex >= targetTaskIndex) testResult.StepResults.RemoveAt(r);
-                        }
-
-                        // 3. 清除並行暫存
-                        parallelExecutionList.Clear();
-                        goto ReExecuteLabel;
-                    }
+                    bool[] results = await Task.WhenAll(pTasks);
+                    if (results.Any(r => !r)) { return false; }
                 }
+
                 return true;
             }
             catch (Exception ex)
             {
-                // 發生未預期的崩潰 (Crash)
-                string errorMsg = $"CRITICAL SYSTEM ERROR: {ex.Message}\nStack Trace: {ex.StackTrace}";
-                Console.WriteLine($"[ViewModel] [嚴重錯誤] {errorMsg}");
+                string errorMsg = $"CRITICAL SYSTEM ERROR: {ex.Message}";
                 logBuilder.AppendLine(errorMsg);
-
-                // 記錄第一筆錯誤資訊，確保 UI 顯示錯誤代碼
-                lock (_firstErrorLock)
-                {
-                    _firstErrorDetail ??= errorMsg;
-                }
-
-                // 嘗試顯示錯誤訊息給操作員 (使用 Invoke 確保 UI 執行緒安全)
+                lock (_firstErrorLock) { _firstErrorDetail ??= errorMsg; }
                 _uiSyncContext.Post(_ => ShowMessageRequested?.Invoke($"系統發生嚴重錯誤，測試終止。\n{ex.Message}"), null);
-
-                return false; // 回傳失敗，讓 MainTestLoop 處理後續 Log 存檔
+                return false;
             }
+            finally
+            {
+                // 3. 解決 193 錯誤：給系統一點時間釋放主流程的 DLL 句柄
+                await Task.Delay(200);
+
+                // 執行收尾任務
+                await ExecutePostTasksAsync(testResult, logBuilder);
+            }
+        }
+        /// <summary>
+        /// 強制執行所有標記為 PostTask 的收尾項目
+        /// </summary>
+        private async Task<bool>ExecutePostTasksAsync(TestResultModel testResult, StringBuilder logBuilder)
+        {
+            var postTasks = _testPlan.Tasks
+         .Select((task, index) => new { task, index })
+         .Where(x => x.task.Enable && x.task.PostTask)
+         .ToList();
+
+            if (postTasks.Count == 0) return true;
+
+            Console.WriteLine($"[ViewModel] 執行收尾任務 (Count: {postTasks.Count})");
+
+            bool allPostPassed = true;
+
+            foreach (var item in postTasks)
+            {
+                var tempGroup = new List<(ItemTask task, int index)> { (item.task, item.index) };
+
+                bool stepPassed = await ExecuteSingleGroupAsync(tempGroup, testResult, logBuilder, canRequestScroll: true);
+
+                if (!stepPassed) allPostPassed = false;
+            }
+
+            // 如果收尾失敗，覆蓋最終結果判定
+            if (!allPostPassed)
+            {
+                testResult.FinalResult = "FAIL";
+            }
+
+            return allPostPassed;
         }
 
         private async Task<bool> ExecuteSingleGroupAsync(List<(ItemTask task, int index)> group, TestResultModel testResult, StringBuilder logBuilder, bool canRequestScroll, int minTaskIndex = -1)

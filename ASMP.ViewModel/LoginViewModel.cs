@@ -11,6 +11,7 @@ using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
+using Microsoft.Win32;
 
 namespace ASMP.ViewModel
 {
@@ -300,6 +301,34 @@ namespace ASMP.ViewModel
                 $"WorkStation,{WorkStation}",
                 $"Version,{Version}"
             ]);
+            SaveToRegistry();
+        }
+        private void SaveToRegistry()
+        {
+            if (!OperatingSystem.IsWindows())
+            {
+                // 如果不是 Windows，直接回傳
+                return;
+            }
+            try
+            {
+                // 開啟或建立路徑：HKEY_CURRENT_USER\Software\MessageBoxResult
+                using (RegistryKey key = Registry.CurrentUser.CreateSubKey(@"Software\MessageBoxResult"))
+                {
+                    if (key != null)
+                    {
+                        key.SetValue("LoginWorkOrder", WorkOrder ?? "");
+                        key.SetValue("LoginEmployeeID", EmployeeID ?? "");
+                        key.SetValue("LoginProductModel", ProductModel ?? "");
+                        key.SetValue("LoginWorkStation", WorkStation ?? "");
+                        key.SetValue("LoginVersion", Version ?? "");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"寫入 Registry 失敗: {ex.Message}");
+            }
         }
 
         private void HandleNASOperations(string toolPath, LoginInfoModel loginInfo)
