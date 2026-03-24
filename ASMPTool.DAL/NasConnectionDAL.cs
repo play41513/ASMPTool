@@ -130,7 +130,7 @@ namespace ASMPTool.DAL
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"連接到 '{path}' 時發生錯誤: {ex.Message}");
+                //Console.WriteLine($"連接到 '{path}' 時發生錯誤: {ex.Message}");
                 return false;
             }
         }
@@ -164,7 +164,7 @@ namespace ASMPTool.DAL
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"連接網路路徑時發生錯誤: {ex.Message}");
+                //Console.WriteLine($"連接網路路徑時發生錯誤: {ex.Message}");
                 return false;
             }
         }
@@ -260,7 +260,7 @@ namespace ASMPTool.DAL
                 }
                 else
                 {
-                    Console.WriteLine($"連接失敗，錯誤代碼: {result}");
+                    //Console.WriteLine($"連接失敗，錯誤代碼: {result}");
                     throw new Win32Exception(result);
                 }
             }
@@ -268,7 +268,7 @@ namespace ASMPTool.DAL
             {
                 if (!ex.Message.Contains("NTLM"))
                 {
-                    Console.WriteLine($"使用帳密連接時，發生錯誤: {ex.Message}");
+                    //Console.WriteLine($"使用帳密連接時，發生錯誤: {ex.Message}");
                 }
                 return false;
             }

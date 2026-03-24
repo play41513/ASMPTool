@@ -367,117 +367,56 @@ namespace ASMP.ViewModel
 
             try
             {
-                // 1. 群組分類邏輯 (保留您原始邏輯)
-                var allGroups = new List<List<(ItemTask task, int index)>>();
-                List<(ItemTask task, int index)>? currentGroup = null;
+                var allSubGroups = new List<List<(ItemTask task, int index)>>();
+                List<(ItemTask task, int index)>? currentSubGroup = null;
 
-                for (int i = 0; i < _testPlan.Tasks.Count; i++)
+                foreach (var (task, index) in _testPlan.Tasks.Select((t, i) => (t, i)))
                 {
-                    var task = _testPlan.Tasks[i];
-                    bool shouldBreakGroup = false;
+                    if (!task.Enable) // 遇到標題，開新組
+                    {
+                        if (currentSubGroup != null) allSubGroups.Add(currentSubGroup);
+                        currentSubGroup = new List<(ItemTask task, int index)>();
+                    }
+                    currentSubGroup?.Add((task, index));
+                }
+                if (currentSubGroup != null) allSubGroups.Add(currentSubGroup);
 
-                    if (currentGroup == null) shouldBreakGroup = true;
+                // 2. 執行小組，根據標題 Sync 判定
+                var parallelWaitingList = new List<List<(ItemTask task, int index)>>();
+
+                for (int i = 0; i < allSubGroups.Count; i++)
+                {
+                    var group = allSubGroups[i];
+                    var header = group.First().task;
+
+                    if (header.Sync)
+                    {
+                        // 如果 Sync=1，先放進等待清單，暫不執行
+                        parallelWaitingList.Add(group);
+                    }
                     else
                     {
-                        var lastTask = currentGroup.Last().task;
-                        if (lastTask.Enable != task.Enable) shouldBreakGroup = true;
-                        else if (lastTask.Sync != task.Sync) shouldBreakGroup = true;
-                        else if (task.Enable && task.Sync) shouldBreakGroup = true;
-                    }
-
-                    if (shouldBreakGroup)
-                    {
-                        if (currentGroup != null) allGroups.Add(currentGroup);
-                        currentGroup = [];
-                    }
-                    currentGroup!.Add((task, i));
-                }
-                if (currentGroup != null && currentGroup.Count != 0) { allGroups.Add(currentGroup); }
-
-                var parallelExecutionList = new List<List<(ItemTask task, int index)>>();
-
-                // 2. 主測試迴圈
-                for (int i = 0; i < allGroups.Count; i++)
-                {
-                    var group = allGroups[i];
-
-                    // 跳過不啟動的項目或 PostTask (PostTask 留在 finally 執行)
-                    if (group.All(g => !g.task.Enable || g.task.PostTask)) continue;
-
-                    try
-                    {
-                        bool isSyncGroup = group.First().task.Sync;
-
-                        if (isSyncGroup)
+                        // 如果 Sync=0
+                        if (parallelWaitingList.Count > 0)
                         {
-                            parallelExecutionList.Add(group);
+                            parallelWaitingList.Add(group);
+
+                            // 同時啟動清單內所有小組
+                            var tasks = parallelWaitingList.Select(g =>
+                                ExecuteSingleGroupAsync(g, testResult, logBuilder, true, minTaskIndexToRun)).ToList();
+
+                            bool[] results = await Task.WhenAll(tasks);
+                            parallelWaitingList.Clear(); // 執行完畢後清空
+
+                            if (results.Any(r => !r)) return false;
                         }
                         else
                         {
-                            if (parallelExecutionList.Count != 0)
-                            {
-                                var parallelTasks = new List<Task<bool>>();
-                                bool isFirst = true;
-                                foreach (var pGrp in parallelExecutionList)
-                                {
-                                    parallelTasks.Add(ExecuteSingleGroupAsync(pGrp, testResult, logBuilder, isFirst, minTaskIndexToRun));
-                                    isFirst = false;
-                                }
-                                bool[] results = await Task.WhenAll(parallelTasks);
-                                parallelExecutionList.Clear();
-                                if (results.Any(r => !r)) { return false; }
-                            }
-
-                            bool sequentialResult = await ExecuteSingleGroupAsync(group, testResult, logBuilder, true, minTaskIndexToRun);
-                            if (!sequentialResult) { return false; }
+                            bool result = await ExecuteSingleGroupAsync(group, testResult, logBuilder, true, minTaskIndexToRun);
+                            if (!result) return false;
                         }
                     }
-                    catch (RetryException ex)
-                    {
-                        // 處理重測跳轉邏輯
-                        int targetTaskIndex = ex.TargetIndex;
-                        minTaskIndexToRun = targetTaskIndex;
-                        int currentMaxIndex = group.Max(t => t.index);
-
-                        _uiSyncContext.Post(_ =>
-                        {
-                            for (int k = targetTaskIndex; k <= currentMaxIndex; k++)
-                            {
-                                if (k < TestSteps.Count)
-                                {
-                                    TestSteps[k].Result = "";
-                                    TestSteps[k].SpendTime = "";
-                                    TestSteps[k].Detail = "";
-                                }
-                            }
-                        }, null);
-
-                        for (int r = testResult.StepResults.Count - 1; r >= 0; r--)
-                        {
-                            var taskIndex = _testPlan.Tasks.FindIndex(t => t.Name == testResult.StepResults[r].TestItemName);
-                            if (taskIndex >= targetTaskIndex) testResult.StepResults.RemoveAt(r);
-                        }
-
-                        parallelExecutionList.Clear();
-                        i = -1;
-                        continue;
-                    }
                 }
-
-                // 處理剩餘的並行任務
-                if (parallelExecutionList.Count != 0)
-                {
-                    var pTasks = new List<Task<bool>>();
-                    bool isFirst = true;
-                    foreach (var pGrp in parallelExecutionList)
-                    {
-                        pTasks.Add(ExecuteSingleGroupAsync(pGrp, testResult, logBuilder, isFirst, minTaskIndexToRun));
-                        isFirst = false;
-                    }
-                    bool[] results = await Task.WhenAll(pTasks);
-                    if (results.Any(r => !r)) { return false; }
-                }
-
                 return true;
             }
             catch (Exception ex)
@@ -540,6 +479,7 @@ namespace ASMP.ViewModel
                     continue;
                 }
                 if (!task.Enable) continue;
+                Console.WriteLine("  --------------------------------");
                 Console.WriteLine($"[ViewModel] 執行測試項目 [{index + 1}]: {task.Name}");
 
                 var correspondingStepVM = TestSteps[index];

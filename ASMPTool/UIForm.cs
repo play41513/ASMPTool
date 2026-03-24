@@ -67,28 +67,77 @@ namespace ASMPTool
             };
             AddDebugMenuOption();
         }
+        private void CaptureAndSaveScreenshot()
+        {
+            try
+            {
+                string baseLogPath = @"\\swtool\swtool\logs";
+                string nasIpPath = @"\\192.168.14.26\swtool\logs";
+
+                // 檢查連線
+                bool connected = ASMPTool.DAL.NasConnectionDAL.CheckNasConnection(baseLogPath, nasIpPath);
+
+                // 最終使用的資料夾路徑
+                string finalPath = Path.Combine(baseLogPath, "ScreenShot");
+
+                // 如果 DNS 不通但 IP 通，則切換路徑
+                if (!Directory.Exists(baseLogPath) && Directory.Exists(nasIpPath))
+                {
+                    finalPath = Path.Combine(nasIpPath, "ScreenShot");
+                }
+
+                // 2. 建立資料夾
+                if (!Directory.Exists(finalPath))
+                {
+                    Directory.CreateDirectory(finalPath);
+                }
+
+                // 3. 執行截圖 (擷取整個主螢幕)
+                Rectangle bounds = Screen.PrimaryScreen.Bounds;
+                using (Bitmap bitmap = new Bitmap(bounds.Width, bounds.Height))
+                {
+                    using (Graphics g = Graphics.FromImage(bitmap))
+                    {
+                        g.CopyFromScreen(Point.Empty, Point.Empty, bounds.Size);
+                    }
+
+                    // 4. 命名檔案：工單_機型_時間.png
+                    string fileName = $"{_viewModel.WorkOrder}_{_viewModel.ProductModel}_{DateTime.Now:yyyyMMdd_HHmmss}.png";
+                    string fullFilePath = Path.Combine(finalPath, fileName);
+
+                    bitmap.Save(fullFilePath, System.Drawing.Imaging.ImageFormat.Png);
+
+                    Console.WriteLine($"[UI] 截圖成功並儲存至: {fullFilePath}");
+                    MessageBox.Show(this, $"截圖已儲存至：\n{fullFilePath}", "截圖成功", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[UI] 截圖失敗: {ex.Message}");
+                MessageBox.Show(this, $"截圖失敗: {ex.Message}", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
         private void AddDebugMenuOption()
         {
-            // 直接使用 Designer 已經建立好的 contextMenuStrip1
-            // 這樣可以保留原本的 "重啟Windows檔案總管" 和 "開啟設備示意圖" 選項
             if (contextMenuStrip1 != null)
             {
-                // 1. 加入分隔線
                 contextMenuStrip1.Items.Add(new ToolStripSeparator());
 
-                // 2. 建立 "開啟除錯視窗" 選項
                 var debugMenuItem = new ToolStripMenuItem("開啟除錯視窗 (Debug Console)");
-
-                // 3. 設定點擊事件
                 debugMenuItem.Click += (s, e) =>
                 {
-                    // 顯示 Debug 視窗
                     DebugConsoleForm.Instance.Show();
                     DebugConsoleForm.Instance.BringToFront();
                 };
 
-                // 4. 將新選項加入到現有的選單中
                 contextMenuStrip1.Items.Add(debugMenuItem);
+
+   
+                var screenshotMenuItem = new ToolStripMenuItem("執行螢幕截圖 (Screenshot)");
+                screenshotMenuItem.Click += (s, e) => {
+                    CaptureAndSaveScreenshot();
+                };
+                contextMenuStrip1.Items.Add(screenshotMenuItem);
             }
         }
 
