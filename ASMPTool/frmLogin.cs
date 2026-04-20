@@ -3,15 +3,20 @@
 using ASMP.ViewModel;
 using System;
 using System.Drawing;
+using System.Runtime.InteropServices;
 using System.Windows.Forms;
 
 #pragma warning disable IDE0079
 #pragma warning disable IDE1006
+
+
 namespace ASMPTool
 {
     public partial class frmLogin : Form
     {
         private readonly LoginViewModel _viewModel;
+        [DllImport("user32.dll")]
+        private static extern IntPtr SendMessage(IntPtr hWnd, int Msg, int wParam, int lParam);
 
         public frmLogin()
         {
@@ -104,6 +109,9 @@ namespace ASMPTool
                 pictureBoxConnect.Image = Properties.Resources.disconnect;
             }
         }
+        private const int CB_SETMINVISIBLE = 0x1701;
+
+
         private void RefreshComboBoxDataSource(ComboBox comboBox, object dataSource)
         {
             if (this.InvokeRequired)
@@ -113,6 +121,11 @@ namespace ASMPTool
             }
             comboBox.DataSource = null;
             comboBox.DataSource = dataSource;
+
+            if (comboBox.IsHandleCreated)
+            {
+                SendMessage(comboBox.Handle, CB_SETMINVISIBLE, 8, 0);
+            }
         }
 
         #region ViewModel Event Handlers (由 ViewModel 觸發)
