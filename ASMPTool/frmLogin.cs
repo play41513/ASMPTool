@@ -16,6 +16,7 @@ namespace ASMPTool
         public frmLogin()
         {
             InitializeComponent();
+            this.CreateHandle();
             _viewModel = new LoginViewModel();
             SetupBindingsAndEvents();
 
@@ -51,41 +52,24 @@ namespace ASMPTool
                 btnLogin.BackColor = Color.White;
             else
                 btnLogin.BackColor = Color.Gray;
+
+            UpdateNasConnectionIcon();
         }
         // 當 ViewModel 的 PropertyChanged 事件被觸發時執行
         private void ViewModel_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
         {
+            if (!this.IsHandleCreated || this.IsDisposed) return;
             // 使用 this.Invoke 確保所有 UI 更新都在 UI 執行緒上執行。
             this.Invoke(() =>
             {
+                if (this.IsDisposed) return;
                 switch (e.PropertyName)
                 {
                     case nameof(LoginViewModel.IsConnected):
-                        try
-                        {
-                            // 組合相對於執行檔目錄的絕對路徑
-                            string iconName = _viewModel.IsConnected ? "connect.png" : "disconnect.png";
-                            string iconPath = Path.Combine(Application.StartupPath, "icon", iconName);
-
-                            if (File.Exists(iconPath))
-                            {
-                                pictureBoxConnect.Image = Image.FromFile(iconPath);
-                            }
-                            else
-                            {
-                                // 如果找不到檔案，可以顯示預設圖示或不變更
-                                // 這裡我們讓它在找不到 connect.png 時，依然顯示 disconnect
-                                pictureBoxConnect.Image = Properties.Resources.disconnect;
-                            }
-                        }
-                        catch
-                        {
-                            // 發生錯誤時，顯示預設的離線圖示
-                            pictureBoxConnect.Image = Properties.Resources.disconnect;
-                        }
+                        UpdateNasConnectionIcon();
                         break;
 
-                    // *** 當任何一個會影響登入按鈕狀態的屬性發生變化時，都重新評估按鈕狀態 ***
+                    // 當任何一個會影響登入按鈕狀態的屬性發生變化時，都重新評估按鈕狀態
                     case nameof(LoginViewModel.WorkOrder):
                     case nameof(LoginViewModel.EmployeeID):
                     case nameof(LoginViewModel.ProductModel):
@@ -98,7 +82,28 @@ namespace ASMPTool
                 }
             });
         }
-        // 解決 WinForms ComboBox 刷新問題。
+        private void UpdateNasConnectionIcon()
+        {
+            try
+            {
+                string iconName = _viewModel.IsConnected ? "connect.png" : "disconnect.png";
+                string iconPath = Path.Combine(Application.StartupPath, "icon", iconName);
+
+                if (File.Exists(iconPath))
+                {
+                    using var fs = new FileStream(iconPath, FileMode.Open, FileAccess.Read);
+                    pictureBoxConnect.Image = Image.FromStream(fs);
+                }
+                else
+                {
+                    pictureBoxConnect.Image = Properties.Resources.disconnect;
+                }
+            }
+            catch
+            {
+                pictureBoxConnect.Image = Properties.Resources.disconnect;
+            }
+        }
         private void RefreshComboBoxDataSource(ComboBox comboBox, object dataSource)
         {
             if (this.InvokeRequired)

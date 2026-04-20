@@ -1,5 +1,5 @@
 ﻿using System;
-using System.Collections.Concurrent; // 需要加入這行
+using System.Collections.Concurrent;
 using System.Drawing;
 using System.IO;
 using System.Text;
@@ -166,6 +166,19 @@ namespace ASMPTool
                 string messageWithTime = $"[{timestamp}] {value ?? ""}{Environment.NewLine}";
                 _logQueue.Enqueue(messageWithTime);
             }
+        }
+        public string GetDisplayText()
+        {
+            string currentText = "";
+            if (_logBox.InvokeRequired)
+            {
+                currentText = (string)_logBox.Invoke(new Func<string>(() => _logBox.Text));
+            }
+            else
+            {
+                currentText = _logBox.Text;
+            }
+            return currentText;
         }
     }
 }

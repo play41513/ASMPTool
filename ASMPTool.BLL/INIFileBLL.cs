@@ -59,7 +59,7 @@ namespace ASMPTool.BLL
                 var task = model.Tasks[i];
                 string sectionName = $"item{i + 1}";
 
-                // 1. 手動寫入 Section (注意要加中括號)
+                // 1. 手動寫入 Section
                 sb.AppendLine($"[{sectionName}]");
 
                 // 2. 手動寫入 Key=Value
@@ -80,7 +80,6 @@ namespace ASMPTool.BLL
                     sb.AppendLine($"NGItem{j + 1}={task.NGTest[j]}");
                 }
 
-                // 每個 Section 之間空一行，方便閱讀
                 sb.AppendLine();
             }
 
@@ -114,29 +113,40 @@ namespace ASMPTool.BLL
         {
             StringBuilder sb = new();
 
-            // 1. 寫入標題列
-            sb.AppendLine("Enable,ItemName,FunctionEnable,FunctionType,FunctionIniPath,Sync,RetryTarget,NGItem1,NGItem2,NGItem3");
+            //找出最大 NG 項目數量，決定需要多少個 NGItem 欄位
+            int maxNgCount = model.Tasks.Count != 0 ? model.Tasks.Max(t => t.NGTest.Count) : 0;
 
-            // 2. 寫入每一列資料
+            List<string> headers = ["Enable", "ItemName", "FunctionEnable", "FunctionType", "FunctionIniPath", "Sync", "RetryTarget"];
+            for (int i = 1; i <= maxNgCount; i++)
+            {
+                headers.Add($"NGItem{i}");
+            }
+            sb.AppendLine(string.Join(",", headers));
+
             foreach (var task in model.Tasks)
             {
-                var ng1 = task.NGTest.Count > 0 ? task.NGTest[0].ToString() : "";
-                var ng2 = task.NGTest.Count > 1 ? task.NGTest[1].ToString() : "";
-                var ng3 = task.NGTest.Count > 2 ? task.NGTest[2].ToString() : "";
+                List<string> fields =
+                [
+                    task.Enable ? "1" : "0",
+                    task.Name,
+                    task.FunctionTest ? "1" : "0",
+                    task.FunctionTestType,
+                    task.FunctionTestPath,
+                    task.Sync ? "1" : "0",
+                    task.RetryTarget.ToString()
+                ];
+                foreach (var ng in task.NGTest)
+                {
+                    fields.Add(ng.ToString());
+                }
+                // 如果該列 NG 數量不足 maxNgCount，補空白欄位
+                for (int i = task.NGTest.Count; i < maxNgCount; i++)
+                {
+                    fields.Add("");
+                }
 
-                // 組合 CSV 行
-                string line = $"{(task.Enable ? "1" : "0")}," +
-                              $"{task.Name}," +
-                              $"{(task.FunctionTest ? "1" : "0")}," +
-                              $"{task.FunctionTestType}," +
-                              $"{task.FunctionTestPath}," +
-                              $"{(task.Sync ? "1" : "0")}," +
-                              $"{task.RetryTarget}," +
-                              $"{ng1},{ng2},{ng3}";
-
-                sb.AppendLine(line);
+                sb.AppendLine(string.Join(",", fields));
             }
-
             File.WriteAllText(filePath, sb.ToString(), Encoding.UTF8);
         }
 
@@ -146,18 +156,17 @@ namespace ASMPTool.BLL
         public static INIFileModel LoadFromCsv(string filePath)
         {
             var model = new INIFileModel();
+            if (!File.Exists(filePath)) return model;
+
             var lines = File.ReadAllLines(filePath);
 
-            // 跳過標題列，從第一行開始讀取
             for (int i = 1; i < lines.Length; i++)
             {
                 string line = lines[i].Trim();
                 if (string.IsNullOrWhiteSpace(line)) continue;
 
-                // 簡單的 CSV 分割 (假設內容不含逗號)
                 string[] parts = line.Split(',');
 
-                // 確保欄位數量足夠 (至少到 RetryTarget)
                 if (parts.Length < 7) continue;
 
                 var task = new ItemTask
@@ -169,12 +178,13 @@ namespace ASMPTool.BLL
                     FunctionTestPath = parts[4].Trim(),
                     Sync = parts[5].Trim() == "1",
                     RetryTarget = int.TryParse(parts[6].Trim(), out int rt) ? rt : 0,
-                    // 處理 NG Items (index 7, 8, 9)
                     NGTest = []
                 };
-                for (int j = 7; j <= 9; j++)
+
+                for (int j = 7; j < parts.Length; j++)
                 {
-                    if (parts.Length > j && int.TryParse(parts[j].Trim(), out int ngVal) && ngVal != 0)
+                    string val = parts[j].Trim();
+                    if (!string.IsNullOrEmpty(val) && int.TryParse(val, out int ngVal) && ngVal != 0)
                     {
                         task.NGTest.Add(ngVal);
                     }
@@ -182,7 +192,6 @@ namespace ASMPTool.BLL
 
                 model.Tasks.Add(task);
             }
-
             return model;
         }
     }

@@ -363,87 +363,134 @@ namespace ASMP.ViewModel
         }
         private async Task<bool> ExecuteTestStepsAsync(TestResultModel testResult, StringBuilder logBuilder)
         {
-            int minTaskIndexToRun = -1;
+            // 1. 先將所有 Tasks 進行分組 (照您原有的 Enable 分組邏輯)
+            var allSubGroups = new List<List<(ItemTask task, int index)>>();
+            List<(ItemTask task, int index)>? currentSubGroup = null;
+
+            foreach (var (task, index) in _testPlan.Tasks.Select((t, i) => (t, i)))
+            {
+                if (!task.Enable)
+                {
+                    if (currentSubGroup != null) allSubGroups.Add(currentSubGroup);
+                    currentSubGroup = new List<(ItemTask task, int index)>();
+                }
+                currentSubGroup?.Add((task, index));
+            }
+            if (currentSubGroup != null) allSubGroups.Add(currentSubGroup);
+
+            // 控制執行進度的索引
+            int i = 0;
+            var parallelWaitingList = new List<List<(ItemTask task, int index)>>();
 
             try
             {
-                var allSubGroups = new List<List<(ItemTask task, int index)>>();
-                List<(ItemTask task, int index)>? currentSubGroup = null;
-
-                foreach (var (task, index) in _testPlan.Tasks.Select((t, i) => (t, i)))
+                while (i < allSubGroups.Count)
                 {
-                    if (!task.Enable) // 遇到標題，開新組
+                    try
                     {
-                        if (currentSubGroup != null) allSubGroups.Add(currentSubGroup);
-                        currentSubGroup = new List<(ItemTask task, int index)>();
-                    }
-                    currentSubGroup?.Add((task, index));
-                }
-                if (currentSubGroup != null) allSubGroups.Add(currentSubGroup);
+                        var group = allSubGroups[i];
+                        var header = group.First().task;
 
-                // 2. 執行小組，根據標題 Sync 判定
-                var parallelWaitingList = new List<List<(ItemTask task, int index)>>();
-
-                for (int i = 0; i < allSubGroups.Count; i++)
-                {
-                    var group = allSubGroups[i];
-                    var header = group.First().task;
-
-                    if (header.Sync)
-                    {
-                        // 如果 Sync=1，先放進等待清單，暫不執行
-                        parallelWaitingList.Add(group);
-                        // 如果這不是第一個進入清單的小組（代表它是結束標記）
-                        if (parallelWaitingList.Count > 1)
-                        {
-                            // --- 啟動並行：目前清單內的所有組別同時執行 ---
-                            var tasks = parallelWaitingList.Select(g =>
-                                ExecuteSingleGroupAsync(g, testResult, logBuilder, true, minTaskIndexToRun)).ToList();
-
-                            bool[] results = await Task.WhenAll(tasks);
-                            parallelWaitingList.Clear(); // 執行完務必清空清單
-
-                            if (results.Any(r => !r)) return false;
-                        }
-                        // 如果 Count == 1，則繼續 loop 找下一個小組
-                    }
-                    else
-                    {
-                        // 如果 Sync=0
-                        if (parallelWaitingList.Count > 0)
+                        // --- 這裡保留您原本的 Sync 判定邏輯 ---
+                        if (header.Sync)
                         {
                             parallelWaitingList.Add(group);
+                            if (parallelWaitingList.Count > 1)
+                            {
+                                var tasks = parallelWaitingList.Select(g =>
+                                    ExecuteSingleGroupAsync(g, testResult, logBuilder, true)).ToList();
 
-                            // 同時啟動清單內所有小組
-                            var tasks = parallelWaitingList.Select(g =>
-                                ExecuteSingleGroupAsync(g, testResult, logBuilder, true, minTaskIndexToRun)).ToList();
+                                bool[] results = await Task.WhenAll(tasks);
+                                parallelWaitingList.Clear();
 
-                            bool[] results = await Task.WhenAll(tasks);
-                            parallelWaitingList.Clear(); // 執行完畢後清空
-
-                            if (results.Any(r => !r)) return false;
+                                if (results.Any(r => !r)) return false;
+                            }
+                            // 繼續下一組尋找結束標記
                         }
                         else
                         {
-                            bool result = await ExecuteSingleGroupAsync(group, testResult, logBuilder, true, minTaskIndexToRun);
-                            if (!result) return false;
+                            if (parallelWaitingList.Count > 0)
+                            {
+                                parallelWaitingList.Add(group);
+                                var tasks = parallelWaitingList.Select(g =>
+                                    ExecuteSingleGroupAsync(g, testResult, logBuilder, true)).ToList();
+
+                                bool[] results = await Task.WhenAll(tasks);
+                                parallelWaitingList.Clear();
+
+                                if (results.Any(r => !r)) return false;
+                            }
+                            else
+                            {
+                                bool result = await ExecuteSingleGroupAsync(group, testResult, logBuilder, true);
+                                if (!result) return false;
+                            }
+                        }
+
+                        i++; // 正常執行，索引遞增
+                    }
+                    catch (RetryException retryEx)
+                    {
+                        // --- 核心不同點：攔截重測並修改索引 ---
+                        Console.WriteLine($"[ViewModel] 捕獲重測請求，目標 Task Index: {retryEx.TargetIndex}");
+
+                        // 1. 尋找 TargetIndex 屬於哪一個 SubGroup
+                        int targetGroupIdx = FindGroupIndexByTaskIndex(allSubGroups, retryEx.TargetIndex);
+
+                        if (targetGroupIdx != -1)
+                        {
+                            // 2. 清空並行等待清單，避免跳轉邏輯錯誤
+                            parallelWaitingList.Clear();
+
+                            // 3. 設定迴圈索引回到目標組別
+                            i = targetGroupIdx;
+
+                            // 4. 重置 UI 狀態 (清除舊的 FAILED 顯示)
+                            ResetStepsStatusFrom(retryEx.TargetIndex);
+
+                            Console.WriteLine($"[ViewModel] 已將執行指標跳回組別: {i}");
+                            continue; // 重新開始 while 迴圈
+                        }
+                        else
+                        {
+                            throw new Exception($"重測失敗：找不到指定的索引 {retryEx.TargetIndex}");
                         }
                     }
                 }
                 return true;
             }
-            catch (Exception ex)
+            catch (Exception ex) when (!(ex is RetryException))
             {
-                string errorMsg = $"CRITICAL SYSTEM ERROR: {ex.Message}";
+                // 攔截其他嚴重錯誤
+                string errorMsg = $"CRITICAL ERROR: {ex.Message}";
                 logBuilder.AppendLine(errorMsg);
-                lock (_firstErrorLock) { _firstErrorDetail ??= errorMsg; }
-                _uiSyncContext.Post(_ => ShowMessageRequested?.Invoke($"系統發生嚴重錯誤，測試終止。\n{ex.Message}"), null);
+                _uiSyncContext.Post(_ => ShowMessageRequested?.Invoke($"系統錯誤: {ex.Message}"), null);
                 return false;
             }
-            finally
+        }
+
+        // 輔助方法：根據 Task Index 找 Group Index
+        private int FindGroupIndexByTaskIndex(List<List<(ItemTask task, int index)>> groups, int taskIndex)
+        {
+            for (int idx = 0; idx < groups.Count; idx++)
             {
-                await Task.Delay(200);
+                if (groups[idx].Any(item => item.index == taskIndex)) return idx;
             }
+            return -1;
+        }
+
+        // 輔助方法：清空 UI 狀態
+        private void ResetStepsStatusFrom(int startTaskIndex)
+        {
+            _uiSyncContext.Post(_ =>
+            {
+                foreach (var step in TestSteps.Where(s => int.Parse(s.Index) >= (startTaskIndex + 1)))
+                {
+                    step.Result = "";
+                    step.SpendTime = "";
+                    step.Detail = "";
+                }
+            }, null);
         }
         private async Task<bool> ExecuteSingleGroupAsync(List<(ItemTask task, int index)> group, TestResultModel testResult, StringBuilder logBuilder, bool canRequestScroll, int minTaskIndex = -1)
         {

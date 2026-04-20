@@ -10,6 +10,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using Microsoft.Win32;
+using System.Text;
 
 namespace ASMPTool
 {
@@ -92,9 +93,11 @@ namespace ASMPTool
                     Directory.CreateDirectory(finalPath);
                 }
 
+                string timeStamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+                string fileBaseName = $"{_viewModel.WorkOrder}_{_viewModel.ProductModel}_{timeStamp}";
                 // 3. 執行截圖 (擷取整個主螢幕)
                 Rectangle bounds = Screen.PrimaryScreen.Bounds;
-                using (Bitmap bitmap = new Bitmap(bounds.Width, bounds.Height))
+                using (Bitmap bitmap = new(bounds.Width, bounds.Height))
                 {
                     using (Graphics g = Graphics.FromImage(bitmap))
                     {
@@ -102,13 +105,26 @@ namespace ASMPTool
                     }
 
                     // 4. 命名檔案：工單_機型_時間.png
-                    string fileName = $"{_viewModel.WorkOrder}_{_viewModel.ProductModel}_{DateTime.Now:yyyyMMdd_HHmmss}.png";
-                    string fullFilePath = Path.Combine(finalPath, fileName);
+                    string imagePath = Path.Combine(finalPath, fileBaseName + ".png");
+                    bitmap.Save(imagePath, System.Drawing.Imaging.ImageFormat.Png);
+                    Console.WriteLine($"[UI] 截圖已儲存: {imagePath}");
+                    MessageBox.Show(this, $"截圖已儲存至：\n{imagePath}", "截圖成功", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
 
-                    bitmap.Save(fullFilePath, System.Drawing.Imaging.ImageFormat.Png);
-
-                    Console.WriteLine($"[UI] 截圖成功並儲存至: {fullFilePath}");
-                    MessageBox.Show(this, $"截圖已儲存至：\n{fullFilePath}", "截圖成功", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                // 取得 DebugConsole 內容並儲存為同名 .log 檔
+                try
+                {
+                    string debugContent = DebugConsoleForm.Instance.GetDisplayText();
+                    if (!string.IsNullOrEmpty(debugContent))
+                    {
+                        string logPath = Path.Combine(finalPath, fileBaseName + ".log");
+                        File.WriteAllText(logPath, debugContent, Encoding.UTF8);
+                        Console.WriteLine($"[UI] Debug Log 已同步儲存: {logPath}");
+                    }
+                }
+                catch (Exception logEx)
+                {
+                    Console.WriteLine($"[UI] 儲存 Debug Log 失敗: {logEx.Message}");
                 }
             }
             catch (Exception ex)
@@ -196,7 +212,7 @@ namespace ASMPTool
                 }
             });
         }
-        private void RunDeviceCleanup()
+        private static void RunDeviceCleanup()
         {
             try
             {
@@ -259,7 +275,7 @@ namespace ASMPTool
                     textBox.AppendText("[系統] Log 已自動清理...\r\n");
                 }
                 // 產生帶有標題的格式化字串          
-                string displayText = $"{logInfo.PassCount.ToString("D5")} |" +
+                string displayText = $"{logInfo.PassCount:D5} |" +
                                      $"{logInfo.Timestamp}| " +
                                      $"[Barcode :{logInfo.Barcode}] " +
                                      $"[Result :{logInfo.Result}] ";
