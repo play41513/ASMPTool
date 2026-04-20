@@ -79,7 +79,7 @@ namespace ASMPTool.BLL
             {
                 if (!result.StartsWith("LOG:ERROR"))
                 {
-                    Console.WriteLine($"[DLLManagerBLL] 注意: 回傳字串中未發現 'DATA:{{...}}#' 格式");
+                    //Console.WriteLine($"[DLLManagerBLL] 注意: 回傳字串中未發現 'DATA:{{...}}#' 格式");
                 }
             }
         }

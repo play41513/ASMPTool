@@ -18,7 +18,7 @@ namespace ASMPTool.BLL
 
         public string GetErrorCodeKey(string description)
         {
-            var found = _errorCodes.FirstOrDefault(x => description.Contains(x.Value));
+            var found = _errorCodes.FirstOrDefault(x => !string.IsNullOrEmpty(x.Value) && description.Contains(x.Value));
             return found.Key;
         }
         public string GetErrorDescription(string errorCodeKey)

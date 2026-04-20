@@ -47,6 +47,7 @@
             label3 = new Label();
             TimerConnect = new System.Windows.Forms.Timer(components);
             pictureBoxConnect = new PictureBox();
+            contextMenuStrip1 = new ContextMenuStrip(components);
             PlFrmLoginTop.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)pictureBox1).BeginInit();
             ((System.ComponentModel.ISupportInitialize)pictureBox2).BeginInit();
@@ -56,6 +57,7 @@
             // PlFrmLoginTop
             // 
             PlFrmLoginTop.BackColor = Color.SteelBlue;
+            PlFrmLoginTop.ContextMenuStrip = contextMenuStrip1;
             PlFrmLoginTop.Controls.Add(btnClose);
             PlFrmLoginTop.Dock = DockStyle.Top;
             PlFrmLoginTop.Location = new Point(0, 0);
@@ -253,12 +255,19 @@
             pictureBoxConnect.TabIndex = 37;
             pictureBoxConnect.TabStop = false;
             // 
+            // contextMenuStrip1
+            // 
+            contextMenuStrip1.ImageScalingSize = new Size(20, 20);
+            contextMenuStrip1.Name = "contextMenuStrip1";
+            contextMenuStrip1.Size = new Size(61, 4);
+            // 
             // frmLogin
             // 
             AutoScaleDimensions = new SizeF(9F, 19F);
             AutoScaleMode = AutoScaleMode.Font;
             BackColor = Color.White;
             ClientSize = new Size(932, 590);
+            ContextMenuStrip = contextMenuStrip1;
             Controls.Add(pictureBoxConnect);
             Controls.Add(label3);
             Controls.Add(label2);
@@ -306,5 +315,6 @@
         private Label label3;
         private System.Windows.Forms.Timer TimerConnect;
         private PictureBox pictureBoxConnect;
+        private ContextMenuStrip contextMenuStrip1;
     }
 }

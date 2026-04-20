@@ -34,14 +34,12 @@ namespace ASMPTool.BLL
             Directory.CreateDirectory(pendingLogFolder);
 
 
-            // --- 組合 Log 字串 ---
             string jsonLogString = ConvertTestResultToJson(testResult);
 
-            // --- 判斷最終結果 ---
             string finalResult = testResult.FinalResult;
             if (finalResult == "TESTTING")
             {
-                // 現在可以直接判斷 jsonLogString 是否包含 "FAIL" 或 "ERROR"
+                // 判斷 jsonLogString 是否包含 "FAIL" 或 "ERROR"
                 finalResult = (jsonLogString.Contains("\"Result\": \"FAIL\"") || jsonLogString.Contains("\"Result\": \"ERROR\"")) ? "FAIL" : "PASS";
             }
             string fileName = $"{date}_[{testResult.ScanBarcodeNumber}][Result_{finalResult}].csv";
@@ -74,7 +72,7 @@ namespace ASMPTool.BLL
             catch (Exception ex)
             {
                 Console.WriteLine($"寫入本地檔案失敗: {ex.Message}");
-                return false; // 如果連本地都寫不進去，真的失敗
+                return false; 
             }
 
             // 3. 嘗試寫入 NAS
@@ -156,18 +154,15 @@ namespace ASMPTool.BLL
 
             foreach (var stepResult in testResult.StepResults)
             {
-                // --- 解析 Detail 字串 ---
                 string errorCode = stepResult.Result; // 預設值
                 JsonElement dataElement = JsonDocument.Parse("{}").RootElement.Clone(); // 預設為空的 JSON 物件 {}
 
-                // 嘗試從 Detail 中提取 ErrorCode
                 Match logMatch = Regex.Match(stepResult.Detail, @"LOG:(.*?)#");
                 if (logMatch.Success)
                 {
                     errorCode = logMatch.Groups[1].Value.Trim();
                 }
 
-                // 嘗試從 Detail 中提取 DATA 的 JSON 部分
                 Match dataMatch = Regex.Match(stepResult.Detail, @"DATA:({.*}|\[.*\])#", RegexOptions.Singleline);
                 if (dataMatch.Success)
                 {
@@ -185,7 +180,6 @@ namespace ASMPTool.BLL
                     }
                 }
 
-                // --- 組合 LogEntry 物件 ---
                 var logEntry = new LogEntry
                 {
                     TestStep = stepResult.TestItemName,
@@ -198,13 +192,9 @@ namespace ASMPTool.BLL
                 logEntries.Add(logEntry);
             }
 
-            // --- 序列化 ---
-            // 設定序列化選項，使其輸出排版美觀的 JSON (方便除錯)
             var options = new JsonSerializerOptions
             {
                 WriteIndented = true,
-                // 如果 JSON 包含中文，建議加上這行以正確編碼
-                // Encoder = System.Text.Encodings.Web.JavaScriptEncoder.Create(System.Text.Unicode.UnicodeRanges.All)
             };
 
             // 將整個列表序列化成一個 JSON 陣列字串
@@ -222,7 +212,6 @@ namespace ASMPTool.BLL
             var files = Directory.GetFiles(pendingLogFolder, "*.csv");
             if (files.Length == 0) return;
 
-            // 簡單檢查一下 NAS 是否連通，避免無謂的嘗試
             if (!NasConnectionDAL.CheckLogPathConnection(currentLoginInfo.NAS_IP_Address)) return;
 
             foreach (var file in files)
@@ -265,7 +254,6 @@ namespace ASMPTool.BLL
                 }
                 catch (Exception ex)
                 {
-                    // 上傳失敗則跳過，留待下次嘗試
                     Console.WriteLine($"背景上傳失敗 ({Path.GetFileName(file)}): {ex.Message}");
                 }
             }

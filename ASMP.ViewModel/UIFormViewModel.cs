@@ -393,6 +393,19 @@ namespace ASMP.ViewModel
                     {
                         // 如果 Sync=1，先放進等待清單，暫不執行
                         parallelWaitingList.Add(group);
+                        // 如果這不是第一個進入清單的小組（代表它是結束標記）
+                        if (parallelWaitingList.Count > 1)
+                        {
+                            // --- 啟動並行：目前清單內的所有組別同時執行 ---
+                            var tasks = parallelWaitingList.Select(g =>
+                                ExecuteSingleGroupAsync(g, testResult, logBuilder, true, minTaskIndexToRun)).ToList();
+
+                            bool[] results = await Task.WhenAll(tasks);
+                            parallelWaitingList.Clear(); // 執行完務必清空清單
+
+                            if (results.Any(r => !r)) return false;
+                        }
+                        // 如果 Count == 1，則繼續 loop 找下一個小組
                     }
                     else
                     {
@@ -429,47 +442,9 @@ namespace ASMP.ViewModel
             }
             finally
             {
-                // 3. 解決 193 錯誤：給系統一點時間釋放主流程的 DLL 句柄
                 await Task.Delay(200);
-
-                // 執行收尾任務
-                await ExecutePostTasksAsync(testResult, logBuilder);
             }
         }
-        /// <summary>
-        /// 強制執行所有標記為 PostTask 的收尾項目
-        /// </summary>
-        private async Task<bool>ExecutePostTasksAsync(TestResultModel testResult, StringBuilder logBuilder)
-        {
-            var postTasks = _testPlan.Tasks
-         .Select((task, index) => new { task, index })
-         .Where(x => x.task.Enable && x.task.PostTask)
-         .ToList();
-
-            if (postTasks.Count == 0) return true;
-
-            Console.WriteLine($"[ViewModel] 執行收尾任務 (Count: {postTasks.Count})");
-
-            bool allPostPassed = true;
-
-            foreach (var item in postTasks)
-            {
-                var tempGroup = new List<(ItemTask task, int index)> { (item.task, item.index) };
-
-                bool stepPassed = await ExecuteSingleGroupAsync(tempGroup, testResult, logBuilder, canRequestScroll: true);
-
-                if (!stepPassed) allPostPassed = false;
-            }
-
-            // 如果收尾失敗，覆蓋最終結果判定
-            if (!allPostPassed)
-            {
-                testResult.FinalResult = "FAIL";
-            }
-
-            return allPostPassed;
-        }
-
         private async Task<bool> ExecuteSingleGroupAsync(List<(ItemTask task, int index)> group, TestResultModel testResult, StringBuilder logBuilder, bool canRequestScroll, int minTaskIndex = -1)
         {
             foreach (var (task, index) in group)
@@ -479,7 +454,7 @@ namespace ASMP.ViewModel
                     continue;
                 }
                 if (!task.Enable) continue;
-                Console.WriteLine("  --------------------------------");
+                Console.WriteLine("\n\n  --------------------------------");
                 Console.WriteLine($"[ViewModel] 執行測試項目 [{index + 1}]: {task.Name}");
 
                 var correspondingStepVM = TestSteps[index];

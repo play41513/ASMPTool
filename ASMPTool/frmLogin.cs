@@ -18,6 +18,8 @@ namespace ASMPTool
             InitializeComponent();
             _viewModel = new LoginViewModel();
             SetupBindingsAndEvents();
+
+            AddDebugMenuOption();
         }
 
         private void SetupBindingsAndEvents()
@@ -115,7 +117,24 @@ namespace ASMPTool
             FrmMain.Show();
             this.Hide();
         }
+        private void AddDebugMenuOption()
+        {
+            // 假設你新增的元件名稱為 contextMenuStrip1
+            if (contextMenuStrip1 != null)
+            {
+                contextMenuStrip1.Items.Clear(); // 清除預設項目
 
+                var debugMenuItem = new ToolStripMenuItem("開啟除錯視窗 (Debug Console)");
+                debugMenuItem.Click += (s, e) =>
+                {
+                    // 呼叫 DebugConsoleForm 單例
+                    DebugConsoleForm.Instance.Show();
+                    DebugConsoleForm.Instance.BringToFront();
+                };
+
+                contextMenuStrip1.Items.Add(debugMenuItem);
+            }
+        }
         private bool OnRequestConfirmation(string message)
         {
             var result = MessageBox.Show(this, message, "Confirm", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
