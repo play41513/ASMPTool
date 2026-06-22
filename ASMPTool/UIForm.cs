@@ -63,10 +63,47 @@ namespace ASMPTool
 
             _viewModel.ConfirmRetryRequested += (message) =>
             {
-                var result = MessageBox.Show(message, "重測確認", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+                var result = MessageBox.Show(this,message, "重測確認", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
                 return result == DialogResult.Yes;
             };
             AddDebugMenuOption();
+        }
+        private void openConfigFolderMenuItem_Click(object? sender, EventArgs e)
+        {
+            try
+            {
+                // 1. 取得相對路徑：ItemParameter\{ProductModel}\{WorkStation}
+                string relativePath = Path.Combine(
+                    "ItemParameter",
+                    _viewModel.ProductModel,
+                    _viewModel.WorkStation
+                );
+
+                // 2. 轉為完整路徑
+                string fullPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, relativePath);
+
+                Console.WriteLine($"[UI] 嘗試開啟設定資料夾: {fullPath}");
+
+                // 3. 檢查資料夾是否存在，若不存在則嘗試向上開啟一層或提示
+                if (Directory.Exists(fullPath))
+                {
+                    Process.Start(new ProcessStartInfo
+                    {
+                        FileName = fullPath,
+                        UseShellExecute = true,
+                        Verb = "open"
+                    });
+                }
+                else
+                {
+                    MessageBox.Show(this, $"找不到設定資料夾：\n{fullPath}", "路徑不存在", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[UI] 開啟資料夾失敗: {ex.Message}");
+                MessageBox.Show(this, $"開啟資料夾時發生錯誤: {ex.Message}", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
         private void CaptureAndSaveScreenshot()
         {
@@ -154,6 +191,10 @@ namespace ASMPTool
                     CaptureAndSaveScreenshot();
                 };
                 contextMenuStrip1.Items.Add(screenshotMenuItem);
+
+                var configFolderMenuItem = new ToolStripMenuItem("開啟本地設定資料夾 (Config Folder)");
+                configFolderMenuItem.Click += openConfigFolderMenuItem_Click;
+                contextMenuStrip1.Items.Add(configFolderMenuItem);
             }
         }
 
@@ -181,10 +222,8 @@ namespace ASMPTool
             {
                 if (e.PropertyName == nameof(UIFormViewModel.IsScanBarcodeVisible))
                 {
-                    // 根據 ViewModel 的狀態，手動設定 Visible 屬性
                     plMessageBox.Visible = _viewModel.IsScanBarcodeVisible;
                     
-                    // 如果是要顯示面板，就執行置中、清空和對焦等操作
                     if (_viewModel.IsScanBarcodeVisible)
                     {
                         plMessageBox.Top = this.Height / 2 - plMessageBox.Height / 2;

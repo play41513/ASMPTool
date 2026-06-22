@@ -585,6 +585,29 @@ namespace ASMP.ViewModel
                     {
                         _firstErrorDetail ??= stepResultItem.Detail;
                     }
+                    bool userWantsRetry = false;
+
+                    if (task.RetryTarget > 0)
+                    {
+                        Console.WriteLine($"[ViewModel] 檢測到 RetryTarget: {task.RetryTarget}，詢問使用者是否重測...");
+
+                        if (ConfirmRetryRequested != null)
+                        {
+                            string message = $"項目 [{task.Name}] 失敗 \n" +
+                                             $"設定要求跳回項目 {task.Name} 重測\n\n" +
+                                             $"是否執行重測？\n" +
+                                             $"(是: 重測 / 否: 執行失敗並執行清理程序)";
+
+                            userWantsRetry = ConfirmRetryRequested.Invoke(message);
+                        }
+
+                        if (userWantsRetry)
+                        {
+                            Console.WriteLine("[ViewModel] 使用者選擇重測，跳過 NG 項目執行");
+                            throw new RetryException(task.RetryTarget - 1);
+                        }
+                    }
+                    Console.WriteLine("[ViewModel] 使用者放棄重測或無重測設定，開始執行 NG 關聯測試...");
                     foreach (int ngTaskIndex in task.NGTest)
                     {
                         int actualIndex = ngTaskIndex - 1;
@@ -593,46 +616,20 @@ namespace ASMP.ViewModel
                         {
                             var ngTask = _testPlan.Tasks[actualIndex];
                             Console.WriteLine($"[ViewModel] 執行 NG 關聯測試: {ngTask.Name}");
-                            if (ngTask.FunctionTestType.Contains("MessageWindows.exe"))
-                            {//目前沒使用這個功能，已經用了MessageWindowsDLL替代
-                                MessageBoxBLL.ExecuteMessageBox(ngTask.FunctionTestType, out _);
-                            }
-                            else
-                            {
-                                //不判定PASS FAIL ，不傳入 ownerHwnd
-                                DLLManagerBLL.ExecuteSpecificPlugin(ngTask.FunctionTestType, ngTask.FunctionTestPath, out _, IntPtr.Zero, testResult, false);
-                            }
+
+                            // 執行 NG 處理插件
+                            DLLManagerBLL.ExecuteSpecificPlugin(
+                                ngTask.FunctionTestType,
+                                ngTask.FunctionTestPath,
+                                out _,
+                                IntPtr.Zero,
+                                testResult,
+                                false
+                            );
                         }
                     }
-                    // 檢查是否需要重測
-                    if (task.RetryTarget > 0)
-                    {
-                        // 確保不在 UI 執行緒阻塞，使用 Invoke 呼叫 UI 層顯示對話框
-                        Console.WriteLine($"[ViewModel] 檢測到 RetryTarget: {task.RetryTarget}，詢問使用者是否重測...");
-                        bool userWantsRetry = false;
 
-                        // 透過事件詢問 View
-                        if (ConfirmRetryRequested != null)
-                        {
-                            string message = $"項目 [{task.Name}] 失敗 \n" +
-                             $"設定要求跳回項目 {task.RetryTarget} 重測\n\n" +
-                             $"是否執行重測？\n" +
-                             $"(是: 重測 / 否: 失敗)"+
-                             $"\n\n\nItem [{task.Name}] Failed.\nRetry requested from item {task.RetryTarget}.\n\nDo you want to retry?\n(Y: Retry / N: FAIL)";
-
-                            userWantsRetry = ConfirmRetryRequested.Invoke(message);
-                        }
-
-                        if (userWantsRetry)
-                        {
-                            // 拋出例外，攜帶目標索引 (轉換為 0-based)
-                            Console.WriteLine("[ViewModel] 使用者選擇重測");
-                            throw new RetryException(task.RetryTarget - 1);
-                        }
-                        else
-                            Console.WriteLine("[ViewModel] 使用者放棄重測");
-                    }
-                    return false;
+                    return false; 
                 }
             }
             return true;

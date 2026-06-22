@@ -125,7 +125,7 @@ namespace ASMPTool.DAL
                 }
 
                 // 如果無法直接存取，則嘗試建立連線
-                Console.WriteLine($"嘗試使用憑證連接到 '{path}'...");
+                //Console.WriteLine($"嘗試使用憑證連接到 '{path}'...");
                 return ConnectWithCredentials(path, username, password);
             }
             catch (Exception ex)
