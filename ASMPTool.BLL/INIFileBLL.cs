@@ -40,6 +40,7 @@ namespace ASMPTool.BLL
                     FunctionTestPath = INIFileDAL.ReadString(filePath, section, "FunctionIniPath"),
                     RetryTarget = INIFileDAL.ReadInteger(filePath, section, "RetryTarget"),
                     NGTest = GetNGTests(section),
+                    LaunchPath = INIFileDAL.ReadString(filePath, section, "LaunchPath")
                 };
                 tasks.Add(task);
             }
@@ -69,6 +70,8 @@ namespace ASMPTool.BLL
                 sb.AppendLine($"FunctionEnable={(task.FunctionTest ? "1" : "0")}");
                 sb.AppendLine($"FunctionType={task.FunctionTestType}");
                 sb.AppendLine($"FunctionIniPath={task.FunctionTestPath}");
+                if (!string.IsNullOrEmpty(task.LaunchPath)) 
+                    sb.AppendLine($"LaunchPath={task.LaunchPath}");
 
                 if (task.RetryTarget > 0)
                 {

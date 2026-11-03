@@ -186,7 +186,7 @@ namespace ASMP.ViewModel
                 }
             }
             SaveRecordFile();
-
+            //
             // 3. 觸發登入成功事件，並傳遞 loginInfo
             LoginSuccessful?.Invoke(this, new LoginEventArgs(loginInfo));
         }
@@ -313,16 +313,14 @@ namespace ASMP.ViewModel
             try
             {
                 // 開啟或建立路徑：HKEY_CURRENT_USER\Software\MessageBoxResult
-                using (RegistryKey key = Registry.CurrentUser.CreateSubKey(@"Software\MessageBoxResult"))
+                using RegistryKey key = Registry.CurrentUser.CreateSubKey(@"Software\MessageBoxResult");
+                if (key != null)
                 {
-                    if (key != null)
-                    {
-                        key.SetValue("LoginWorkOrder", WorkOrder ?? "");
-                        key.SetValue("LoginEmployeeID", EmployeeID ?? "");
-                        key.SetValue("LoginProductModel", ProductModel ?? "");
-                        key.SetValue("LoginWorkStation", WorkStation ?? "");
-                        key.SetValue("LoginVersion", Version ?? "");
-                    }
+                    key.SetValue("LoginWorkOrder", WorkOrder ?? "");
+                    key.SetValue("LoginEmployeeID", EmployeeID ?? "");
+                    key.SetValue("LoginProductModel", ProductModel ?? "");
+                    key.SetValue("LoginWorkStation", WorkStation ?? "");
+                    key.SetValue("LoginVersion", Version ?? "");
                 }
             }
             catch (Exception ex)

@@ -113,7 +113,31 @@ namespace ASMP.ViewModel
             Console.WriteLine($"[ViewModel] 正在載入測試計畫: {filePath}");
             _originalTestPlan = new INIFileBLL(filePath).LoadToModel();
             _testPlan = new INIFileBLL(filePath).LoadToModel();
-
+            // ==========================================
+            // 檢查是否有設定開啟第三方程式
+            // ==========================================
+            var launchTask = _testPlan.Tasks.FirstOrDefault(t => t.Enable && !string.IsNullOrEmpty(t.LaunchPath));
+            if (launchTask != null)
+            {
+                if (File.Exists(launchTask.LaunchPath))
+                {
+                    try
+                    {
+                        Process.Start(new ProcessStartInfo
+                        {
+                            FileName = launchTask.LaunchPath,
+                            UseShellExecute = true
+                        });
+                        Environment.Exit(0);
+                        return;
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"[ViewModel] 啟動第三方程式失敗: {ex.Message}");
+                    }
+                }
+            }
+            // ==========================================
             // 初始化
             BarcodeEnteredCommand = new RelayCommand<string>(OnBarcodeEntered);
             EnterMttModeCommand = new RelayCommand(OnEnterMttMode);

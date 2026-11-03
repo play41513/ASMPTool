@@ -105,6 +105,43 @@ namespace ASMPTool
                 MessageBox.Show(this, $"開啟資料夾時發生錯誤: {ex.Message}", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
+        private void openDriverFolderMenuItem_Click(object? sender, EventArgs e)
+        {
+            try
+            {
+                // 1. 取得相對路徑：ItemParameter\{ProductModel}\Driver
+                string relativePath = Path.Combine(
+                    "ItemParameter",
+                    _viewModel.ProductModel,
+                    "Driver"
+                );
+
+                // 2. 轉為完整路徑
+                string fullPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, relativePath);
+
+                Console.WriteLine($"[UI] 嘗試開啟驅動安裝資料夾: {fullPath}");
+
+                // 3. 檢查資料夾是否存在，若不存在則提示
+                if (Directory.Exists(fullPath))
+                {
+                    Process.Start(new ProcessStartInfo
+                    {
+                        FileName = fullPath,
+                        UseShellExecute = true,
+                        Verb = "open"
+                    });
+                }
+                else
+                {
+                    MessageBox.Show(this, $"找不到驅動安裝資料夾：\n{fullPath}", "路徑不存在", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[UI] 開啟驅動安裝資料夾失敗: {ex.Message}");
+                MessageBox.Show(this, $"開啟資料夾時發生錯誤: {ex.Message}", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
         private void CaptureAndSaveScreenshot()
         {
             try
@@ -195,6 +232,10 @@ namespace ASMPTool
                 var configFolderMenuItem = new ToolStripMenuItem("開啟本地設定資料夾 (Config Folder)");
                 configFolderMenuItem.Click += openConfigFolderMenuItem_Click;
                 contextMenuStrip1.Items.Add(configFolderMenuItem);
+
+                var driverFolderMenuItem = new ToolStripMenuItem("開啟驅動安裝資料夾 (Driver Folder)");
+                driverFolderMenuItem.Click += openDriverFolderMenuItem_Click;
+                contextMenuStrip1.Items.Add(driverFolderMenuItem);
             }
         }
 
@@ -202,16 +243,14 @@ namespace ASMPTool
 
         private MttSettings? OnShowMttSelectionDialogRequested(List<Tuple<string, int>> headers, INIFileModel testPlan)
         {
-            using (var mttForm = new frmMttSelection(headers, testPlan, _loginInfo))
+            using var mttForm = new frmMttSelection(headers, testPlan, _loginInfo);
+            if (mttForm.ShowDialog(this) == DialogResult.OK)
             {
-                if (mttForm.ShowDialog(this) == DialogResult.OK)
+                return new MttSettings
                 {
-                    return new MttSettings
-                    {
-                        ModifiedTestPlan = mttForm.ModifiedTestPlan,
-                        LoopCount = mttForm.LoopCount
-                    };
-                }
+                    ModifiedTestPlan = mttForm.ModifiedTestPlan,
+                    LoopCount = mttForm.LoopCount
+                };
             }
             return null;
         }
@@ -231,6 +270,14 @@ namespace ASMPTool
                         tBoxScanBarcode.Clear();
                         WindowHelper.ForceFocus(this.Handle);
                         tBoxScanBarcode.Focus();
+                    }
+                }
+                else if (e.PropertyName == nameof(UIFormViewModel.OverallResult))
+                {
+                    string result = _viewModel.OverallResult;
+                    if (result == "PASS" || result == "FAIL")
+                    {
+                        RunDeviceCleanup();
                     }
                 }
             });
@@ -273,7 +320,7 @@ namespace ASMPTool
                     Verb = "runas"        // 確保管理員權限
                 };
 
-                using (Process process = Process.Start(psi))
+                using (Process? process = Process.Start(psi))
                 {
                     // 設定 10 秒超時以防萬一
                     process?.WaitForExit(10000);
@@ -407,7 +454,6 @@ namespace ASMPTool
                 }
                 else if (!string.IsNullOrWhiteSpace(inputText))
                 {
-                    RunDeviceCleanup();
                     // 寫入 Registry 
                     try
                     {

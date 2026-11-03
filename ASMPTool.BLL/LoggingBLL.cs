@@ -47,9 +47,19 @@ namespace ASMPTool.BLL
             string pendingCsvPath = Path.Combine(pendingLogFolder, fileName);
 
             // 準備 CSV 內容
-            string[] headers = ["ProductName", "EmployeeID", "Version", "Barcode", "UnitNumber", "Date", "Result", "ErrorCode", "WorkOrder", "SN", "MAC1", "MAC2", "MAC3", "LOG"];
+            // 1. 給 MES 的基礎資料 (無 LOG 欄位，避免違規字元破壞資料庫)
+            string[] localHeaders = ["ProductName", "EmployeeID", "Version", "Barcode", "UnitNumber", "Date", "Result", "ErrorCode", "WorkOrder", "SN", "MAC1", "MAC2", "MAC3", "LOG"];
+            string localContentLine = $"{loginInfo.ProductModel},{loginInfo.EmployeeID}," +
+                                     $"{loginInfo.Version},{testResult.ScanBarcodeNumber}," +
+                                     $"{testResult.UnitNumber},{date}," +
+                                     $"{finalResult},{testResult.ErrorCode}," +
+                                     $"{loginInfo.WorkOrder},{testResult.SerialNumber}," +
+                                     $"{testResult.MACNumber1},{testResult.MACNumber2}," +
+                                     $"{testResult.MACNumber3}";
+            // 2. 給 NAS/Pending 的完整資料 (附加 csvSafeLogString)
+            string[] nasHeaders = ["ProductName", "EmployeeID", "Version", "Barcode", "UnitNumber", "Date", "Result", "ErrorCode", "WorkOrder", "SN", "MAC1", "MAC2", "MAC3", "LOG"];
             string csvSafeLogString = $"\"{jsonLogString.Replace("\"", "\"\"")}\"";
-            string csvContentLine = $"{loginInfo.ProductModel},{loginInfo.EmployeeID}," +
+            string pendingContentLine = $"{loginInfo.ProductModel},{loginInfo.EmployeeID}," +
                                  $"{loginInfo.Version},{testResult.ScanBarcodeNumber}," +
                                  $"{testResult.UnitNumber},{date}," +
                                  $"{finalResult},{testResult.ErrorCode}," +
@@ -59,15 +69,19 @@ namespace ASMPTool.BLL
 
             try
             {
-                // 1. 寫入本地 Log (C:\log)
+                // 1. 寫入本地 Log (C:\log) - 不帶 JSON LOG，專供 MES
                 using (StreamWriter writer = new(localCsvPath))
                 {
-                    writer.WriteLine(string.Join(",", headers));
-                    writer.WriteLine(csvContentLine);
+                    writer.WriteLine(string.Join(",", localHeaders));
+                    writer.WriteLine(localContentLine);
                 }
 
-                // 2. 寫入暫存 Log (C:\log\Pending) - 作為斷網續傳的備份
-                File.Copy(localCsvPath, pendingCsvPath, true);
+                // 2. 寫入暫存 Log (C:\log\Pending) - 作為斷網續傳 NAS 的備份，需保有完整 LOG
+                using (StreamWriter writer = new(pendingCsvPath))
+                {
+                    writer.WriteLine(string.Join(",", nasHeaders));
+                    writer.WriteLine(pendingContentLine);
+                }
             }
             catch (Exception ex)
             {

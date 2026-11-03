@@ -12,6 +12,7 @@ namespace ASMPTool.Model
         public List<int> NGTest { get; set; } = [];
 
         public int RetryTarget { get; set; } = 0;
+        public string LaunchPath { get; set; } = string.Empty;
         public ItemTask Clone()
         {
             return new ItemTask
@@ -24,6 +25,7 @@ namespace ASMPTool.Model
                 FunctionTestPath = this.FunctionTestPath,
                 NGTest = new List<int>(this.NGTest),
                 RetryTarget = this.RetryTarget,
+                LaunchPath = this.LaunchPath
             };
         }
     }
