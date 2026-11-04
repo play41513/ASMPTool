@@ -85,7 +85,7 @@ namespace ASMPTool.DAL
 
 
         // 預設路徑
-        private const string DEFAULT_LOG_PATH = @"\\swtool\swtool\logs";
+        private const string DEFAULT_LOG_PATH = @"\\actionstar_nas\swtool\logs";
 
         /// <summary>
         /// 檢查並建立與指定路徑的連線，包含 DNS 和 IP 備援機制。
@@ -128,7 +128,7 @@ namespace ASMPTool.DAL
                 //Console.WriteLine($"嘗試使用憑證連接到 '{path}'...");
                 return ConnectWithCredentials(path, username, password);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 //Console.WriteLine($"連接到 '{path}' 時發生錯誤: {ex.Message}");
                 return false;
@@ -138,7 +138,7 @@ namespace ASMPTool.DAL
         /// <summary>
         /// 檢查並建立LOG的連線
         /// </summary>
-        /// <param name="logPath">log路徑  預設為\\swtool\swtool\log</param>
+        /// <param name="logPath">log路徑  預設為\\actionstar_nas\swtool\log</param>
         /// <returns>連接是否成功</returns>
         public static bool CheckLogPathConnection(string logPath = DEFAULT_LOG_PATH)
         {
@@ -162,7 +162,7 @@ namespace ASMPTool.DAL
                     return ConnectWithoutCredentials(logPath);
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 //Console.WriteLine($"連接網路路徑時發生錯誤: {ex.Message}");
                 return false;
@@ -317,7 +317,7 @@ namespace ASMPTool.DAL
                 }
                 return true;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 //Console.WriteLine($"無帳密連接時，發生錯誤: {ex.Message}");
                 return false;

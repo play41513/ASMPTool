@@ -113,6 +113,7 @@ namespace ASMPTool
                 string relativePath = Path.Combine(
                     "ItemParameter",
                     _viewModel.ProductModel,
+                    _viewModel.WorkStation,
                     "Driver"
                 );
 
@@ -146,7 +147,7 @@ namespace ASMPTool
         {
             try
             {
-                string baseLogPath = @"\\swtool\swtool\logs";
+                string baseLogPath = @"\\actionstar_nas\swtool\logs";
                 string nasIpPath = @"\\192.168.14.26\swtool\logs";
 
                 // 檢查連線
@@ -170,6 +171,7 @@ namespace ASMPTool
                 string timeStamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
                 string fileBaseName = $"{_viewModel.WorkOrder}_{_viewModel.ProductModel}_{timeStamp}";
                 // 3. 執行截圖 (擷取整個主螢幕)
+
                 Rectangle bounds = Screen.PrimaryScreen.Bounds;
                 using (Bitmap bitmap = new(bounds.Width, bounds.Height))
                 {
@@ -229,13 +231,15 @@ namespace ASMPTool
                 };
                 contextMenuStrip1.Items.Add(screenshotMenuItem);
 
-                var configFolderMenuItem = new ToolStripMenuItem("開啟本地設定資料夾 (Config Folder)");
-                configFolderMenuItem.Click += openConfigFolderMenuItem_Click;
-                contextMenuStrip1.Items.Add(configFolderMenuItem);
 
                 var driverFolderMenuItem = new ToolStripMenuItem("開啟驅動安裝資料夾 (Driver Folder)");
                 driverFolderMenuItem.Click += openDriverFolderMenuItem_Click;
                 contextMenuStrip1.Items.Add(driverFolderMenuItem);
+
+                var configFolderMenuItem = new ToolStripMenuItem("開啟本地設定資料夾 (Config Folder)");
+                configFolderMenuItem.Click += openConfigFolderMenuItem_Click;
+                contextMenuStrip1.Items.Add(configFolderMenuItem);
+
             }
         }
 
@@ -320,12 +324,10 @@ namespace ASMPTool
                     Verb = "runas"        // 確保管理員權限
                 };
 
-                using (Process? process = Process.Start(psi))
-                {
-                    // 設定 10 秒超時以防萬一
-                    process?.WaitForExit(10000);
-                    Console.WriteLine("[系統] 離線設備紀錄清理完成 (已過濾 0BDA/17E9)。");
-                }
+                using Process? process = Process.Start(psi);
+                // 設定 10 秒超時以防萬一
+                process?.WaitForExit(10000);
+                Console.WriteLine("[系統] 離線設備紀錄清理完成 (已過濾 0BDA/17E9)。");
             }
             catch (Exception ex)
             {
@@ -458,13 +460,11 @@ namespace ASMPTool
                     try
                     {
                         // 開啟或建立機碼 HKEY_CURRENT_USER\Software\MessageBoxResult
-                        using (RegistryKey key = Registry.CurrentUser.CreateSubKey(@"Software\MessageBoxResult"))
+                        using RegistryKey key = Registry.CurrentUser.CreateSubKey(@"Software\MessageBoxResult");
+                        if (key != null)
                         {
-                            if (key != null)
-                            {
-                                key.SetValue("Barcode", inputText, RegistryValueKind.String);
-                                Console.WriteLine($"[UI] 條碼已寫入 Registry: {inputText}");
-                            }
+                            key.SetValue("Barcode", inputText, RegistryValueKind.String);
+                            Console.WriteLine($"[UI] 條碼已寫入 Registry: {inputText}");
                         }
                     }
                     catch (Exception ex)

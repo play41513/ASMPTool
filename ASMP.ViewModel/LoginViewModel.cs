@@ -36,7 +36,7 @@ namespace ASMP.ViewModel
         private readonly List<string> _allVersions = [];
 
         private bool _isConnected = false;
-        private const string _nasDnsRoot = @"\\swtool\swtool";
+        private const string _nasDnsRoot = @"\\actionstar_nas\swtool";
         private const string _nasIpRoot = @"\\192.168.14.26\swtool";
         private string _nasRootPath = Directory.GetCurrentDirectory();
 
@@ -367,7 +367,7 @@ namespace ASMP.ViewModel
             FileUnblocker.UnblockDirectory(destinationPath);
 
         }
-        private void CopyFilesRecursively(string sourcePath, string destinationPath, LoginInfoModel loginInfo, bool forceCopy, bool excludeSpecialFolders)
+        private static void CopyFilesRecursively(string sourcePath, string destinationPath, LoginInfoModel loginInfo, bool forceCopy, bool excludeSpecialFolders)
         {
             DirectoryInfo dir = new(sourcePath);
             if (!dir.Exists) return;
